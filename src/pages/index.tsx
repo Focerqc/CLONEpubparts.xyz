@@ -24,7 +24,7 @@ const Page: React.FC<PageProps> = () => {
 
                 <div className="py-5 text-center">
                     <h1 className="display-3 fw-bold mb-0" style={{ letterSpacing: '-0.02em' }}>ESK8CAD.COM</h1>
-                    <p className="mt-2 text-info small uppercase letter-spacing-2 fw-bold opacity-75">Open-Source ESK8 Parts Library</p>
+                    <p className="mt-2 text-info small uppercase letter-spacing-2 fw-bold opacity-75">Super epic ESK8 Parts Library</p>
                 </div>
             </header>
 

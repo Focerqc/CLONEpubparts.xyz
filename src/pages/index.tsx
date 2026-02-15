@@ -10,7 +10,7 @@ import SiteNavbar from "../components/SiteNavbar"
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
-        <SiteMetaData title="Home | PubParts.xyz" />
+        <SiteMetaData title="Home | ESK8CAD.COM" />
     </>
 )
 
@@ -21,7 +21,7 @@ const Page: React.FC<PageProps> = () => {
                 <SiteNavbar isHomepage={true} />
 
                 <h1 className="flex-center">
-                    PubParts.xyz
+                    ESK8CAD.COM
                 </h1>
 
                 <p className="tagline flex-center">
@@ -31,16 +31,17 @@ const Page: React.FC<PageProps> = () => {
 
             <main>
                 <Container>
-                    <p>A collection of open source or otherwise aftermarket OneWheel parts, electronics, and resources.</p>
-                    <p>Your part contributions via the project's Discord thread are welcome (and encouraged) to help make this a well-stocked library!</p>
-                    <p>To quickly locate a part or resource you can use the sitewide search in the navbar. Otherwise, you can also view specific collections:</p>
+                    <p>A collection of open source ESK8 CAD files — .STEP and .STL formats for enclosures, motor mounts, trucks, adapters, battery boxes, and other custom components.</p>
+                    <p>Your CAD contributions to make our library fully fledged are welcome (and encouraged) to help build a stronger more resilient community  </p>
+                    <p>This is strictly for electric skateboard (ESK8) and related projects. For Onewheel build parts and resources, head to <a href="https://PubParts.xyz">PubParts.xyz</a>.</p>
+                    <p>To quickly locate a file, use the sitewide search in the navbar. Or browse specific collections:</p>
                     <h2>Parts</h2>
                     <PartTypesLinks />
                     <h2>Resources</h2>
                     <ResourceTypesLinks />
                 </Container>
             </main>
-                
+
             <SiteFooter />
         </>
     )

@@ -9,7 +9,7 @@ import SiteNavbar from "../components/SiteNavbar"
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
-        <SiteMetaData title="Submit Part | PubParts.xyz" />
+        <SiteMetaData title="Submit Part | ESK8CAD.COM" />
     </>
 )
 
@@ -34,16 +34,16 @@ const SubmitPage: React.FC<PageProps> = () => {
     })
 
     const platforms = [
-        "Floatwheel", "GT/GT-S", "XR/Funwheel", "Pint/X/S",
-        "VESC Electronics", "Miscellaneous Items", "XR Classic"
+        "MBoards", "Meepo", "Radium Performance", "Bioboards", "Hoyt St", "Lacroix", "Trampa", "Evolve", "Backfire", "Exway", "Onsra", "Wowgo", "Tynee", "Other"
     ]
 
     const fabricationMethods = ["3d Printed", "CNC", "Molded", "Other"]
 
     const commonTags = [
-        "Fender", "Bumper", "Footpad", "Rails", "Battery Box",
-        "Controller Box", "Stand", "Bearing Cover", "Plug/Cover",
-        "Handle", "Tire", "Hardware"
+        "Deck", "Truck", "Motor", "Enclosure", "Adapter",
+        "Battery Box", "Mount", "Hardware", "Remote", "BMS",
+        "ESC", "Drivetrain", "Wheel", "Pulley", "Bearing",
+        "Gasket", "Bracket", "Miscellaneous"
     ]
 
     // Tag management
@@ -150,7 +150,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                 <Card.Body className="p-5">
                                     <h3 className="mb-4 text-center">Start Your Submission</h3>
                                     <p className="mb-4 text-center text-muted">
-                                        Paste a Printables link to automatically scrape details and prepare your entry for the PubParts catalog.
+                                        Paste a Printables link to automatically scrape details and prepare your entry for the ESK8CAD catalog.
                                     </p>
                                     <Form onSubmit={handleScrape}>
                                         <Form.Group className="mb-4">
@@ -195,13 +195,13 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                     </div>
                                                 )}
                                                 <Form.Group className="mb-3 text-start">
-                                                    <Form.Label className="small fw-bold text-muted">Thumbnail Image URL</Form.Label>
+                                                    <Form.Label className="fw-bold">Image URL</Form.Label>
                                                     <Form.Control
-                                                        size="sm"
+                                                        type="url"
                                                         value={partData.imageSrc}
                                                         onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
                                                         placeholder="Manually paste an image link if needed"
-                                                        className="bg-dark text-light border-secondary"
+                                                        className="bg-secondary text-light border-secondary p-3"
                                                     />
                                                 </Form.Group>
                                             </Col>
@@ -219,7 +219,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 </Form.Group>
 
                                                 <Row>
-                                                    <Col md={6}>
+                                                    <Col lg={6}>
                                                         <Form.Group className="mb-4">
                                                             <Form.Label className="fw-bold">Target Platform</Form.Label>
                                                             <Form.Select
@@ -227,11 +227,11 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                                 onChange={e => setPartData({ ...partData, platform: e.target.value })}
                                                                 className="bg-secondary text-light border-secondary p-3"
                                                             >
-                                                                {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+                                                                {platforms.sort().map(p => <option key={p} value={p}>{p}</option>)}
                                                             </Form.Select>
                                                         </Form.Group>
                                                     </Col>
-                                                    <Col md={6}>
+                                                    <Col lg={6}>
                                                         <Form.Group className="mb-4">
                                                             <Form.Label className="fw-bold">Fabrication Method</Form.Label>
                                                             <Form.Select
@@ -246,29 +246,40 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 </Row>
 
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold d-block mb-3">Part Tags (Pick as many as apply)</Form.Label>
-                                                    <div className="d-flex flex-wrap gap-2 mb-2 p-3 border border-secondary rounded bg-dark" style={{ backgroundColor: '#16191c' }}>
+                                                    <Form.Label className="fw-bold d-block mb-3">Part Tags</Form.Label>
+                                                    <Form.Select
+                                                        className="bg-secondary text-light border-secondary p-3 mb-3"
+                                                        value=""
+                                                        onChange={e => {
+                                                            if (e.target.value) toggleTag(e.target.value);
+                                                            e.target.value = "";
+                                                        }}
+                                                    >
+                                                        <option value="">Select a tag to add/remove...</option>
                                                         {commonTags.sort().map(tag => (
-                                                            <div
-                                                                key={tag}
-                                                                onClick={() => toggleTag(tag)}
-                                                                className={`badge rounded-pill p-3 fs-6 transition-all ${partData.typeOfPart.includes(tag)
-                                                                    ? 'bg-primary text-white border border-primary shadow'
-                                                                    : 'bg-transparent text-light border border-secondary'
-                                                                    }`}
-                                                                style={{
-                                                                    cursor: 'pointer',
-                                                                    userSelect: 'none',
-                                                                    opacity: partData.typeOfPart.includes(tag) ? 1 : 0.7,
-                                                                    borderWidth: '1px',
-                                                                    borderStyle: 'solid'
-                                                                }}
-                                                            >
-                                                                {tag}
-                                                            </div>
+                                                            <option key={tag} value={tag}>
+                                                                {partData.typeOfPart.includes(tag) ? `✓ ${tag}` : tag}
+                                                            </option>
                                                         ))}
-                                                    </div>
-                                                    <Form.Text className="text-muted">Click a tag to toggle it on or off.</Form.Text>
+                                                    </Form.Select>
+
+                                                    {partData.typeOfPart.length > 0 && (
+                                                        <div className="d-flex flex-wrap gap-2 mb-3 p-3 border border-secondary rounded bg-dark" style={{ backgroundColor: '#16191c' }}>
+                                                            {partData.typeOfPart.sort().map(tag => (
+                                                                <Badge
+                                                                    key={tag}
+                                                                    pill
+                                                                    bg="primary"
+                                                                    className="p-2 fs-6"
+                                                                    style={{ cursor: 'pointer' }}
+                                                                    onClick={() => toggleTag(tag)}
+                                                                >
+                                                                    {tag} ×
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <Form.Text className="text-muted">Select tags from the dropdown. Click a badge above to remove it.</Form.Text>
                                                 </Form.Group>
 
                                                 <Form.Group className="mb-4">

@@ -26,20 +26,26 @@ const allPartsAndResources = [...new Set([
  */
 export default ({ isHomepage }: NavbarProps) => {
     const [showModal, setShowModal] = useState(false)
+    const [isSpinning, setIsSpinning] = useState(false)
+
+    const handleLogoClick = () => {
+        setIsSpinning(true);
+        setTimeout(() => setIsSpinning(false), 600); // match animation duration
+    };
 
     return (
         <Navbar fixed="top" expand="lg" data-bs-theme="dark">
             <Container>
-                <Navbar.Brand href="/">
+                <Navbar.Brand href="/" onClick={handleLogoClick}>
                     <StaticImage
                         src="../../static/images/logo.png"
                         width={55}
                         height={55}
-                        className={(isHomepage ? "d-inline-block" : "d-xs-inline-block d-md-none") + " align-top"}
-                        alt="PubParts.xyz logo" />
+                        className={(isHomepage ? "d-inline-block" : "d-xs-inline-block d-md-none") + " align-top" + (isSpinning ? " spin-once" : "")}
+                        alt="ESK8CAD.COM logo" />
 
                     <span className={(isHomepage ? "d-none" : "d-none d-md-inline-block")}>
-                        PubParts.xyz
+                        ESK8CAD.COM
                     </span>
                 </Navbar.Brand>
 
@@ -56,13 +62,13 @@ export default ({ isHomepage }: NavbarProps) => {
                         <Nav.Link href="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/submit">Submit</Nav.Link>
                         <NavDropdown title="Parts" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-parts-dropdown">
-                            <NavDropdown.Item href="/parts/floatwheel" target="_self">Floatwheel</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/gt" target="_self">GT/GT-S</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/pint" target="_self">Pint/X/S</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/xr" target="_self">XR/Funwheel</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/xrclassic" target="_self">XR Classic</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/misc" target="_self">Miscellaneous Items</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/electronics" target="_self">VESC Electronics</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/mboards" target="_self">MBoards</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/meepo" target="_self">Meepo</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/radium" target="_self">Radium Performance</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/lacroix" target="_self">Lacroix</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/trampa" target="_self">Trampa</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/bioboards" target="_self">Bioboards</NavDropdown.Item>
+                            <NavDropdown.Item href="/parts/other" target="_self">Other</NavDropdown.Item>
                         </NavDropdown>
                         <NavDropdown title="Resources" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-resources-dropdown">
                             <NavDropdown.Item href="/resources/applications" target="_self">Applications</NavDropdown.Item>

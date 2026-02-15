@@ -9,7 +9,7 @@ import SiteNavbar from "../../components/SiteNavbar"
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
-        <SiteMetaData title="Parts | PubParts.xyz" />
+        <SiteMetaData title="Parts | ESK8CAD.COM" />
     </>
 )
 
@@ -20,7 +20,7 @@ const Page: React.FC<PageProps> = () => {
                 <SiteNavbar isHomepage={true} />
 
                 <h1 className="flex-center">
-                    PubParts.xyz
+                    ESK8CAD.COM
                 </h1>
 
                 <p className="tagline flex-center">
@@ -35,7 +35,7 @@ const Page: React.FC<PageProps> = () => {
                     <PartTypesLinks />
                 </Container>
             </main>
-                
+
             <SiteFooter />
         </>
     )

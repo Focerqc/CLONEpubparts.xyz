@@ -6,8 +6,8 @@ dotenv.config()
 
 const config: GatsbyConfig = {
     siteMetadata: {
-        title: "PubParts",
-        description: "A collection of open source or otherwise aftermarket OneWheel parts.",
+        title: "ESK8CAD",
+        description: "A collection of open source ESK8 CAD files.",
         image: "/favicon.ico",
         siteUrl: process.env.SITE_URL || `https://esk8cad.com`,
     },

@@ -5,11 +5,11 @@ interface ItemData {
     title: string
     /**
      * Item fabrication method
-     */ 
+     */
     fabricationMethod: FabricationMethod[]
     /**
      * Item type
-     */ 
+     */
     typeOfPart: PartType[]
     /**
      * Image source url
@@ -66,6 +66,15 @@ type PartType =
     | "Stand"
     | "Tire"
     | "Tool"
+    | "Deck"
+    | "Truck"
+    | "Enclosure"
+    | "Mount"
+    | "Drivetrain"
+    | "Wheel"
+    | "Pulley"
+    | "Bearing"
+    | "ESC"
 
 type FabricationMethod =
     | "3d Printed"
@@ -74,7 +83,7 @@ type FabricationMethod =
     | "Other"
     | "PCB"
 
-type PlatformType = 
+type PlatformType =
     | "Floatwheel"
     | "GT/GT-S"
     | "Miscellaneous Items"
@@ -82,6 +91,20 @@ type PlatformType =
     | "VESC Electronics"
     | "XR/Funwheel"
     | "XR Classic"
+    | "MBoards"
+    | "Meepo"
+    | "Radium Performance"
+    | "Bioboards"
+    | "Hoyt St"
+    | "Lacroix"
+    | "Trampa"
+    | "Evolve"
+    | "Backfire"
+    | "Exway"
+    | "Onsra"
+    | "Wowgo"
+    | "Tynee"
+    | "Other"
 
 interface ResourceData {
     /**
@@ -90,7 +113,7 @@ interface ResourceData {
     title: string
     /**
      * Resource type
-     */ 
+     */
     typeOfResource: ResourceType[]
     /**
      * Resource external URL
@@ -126,7 +149,7 @@ interface PartsShopData {
     title: string
     /**
      * Item type
-     */ 
+     */
     typeOfPart: PartShopType[]
     /**
      * Platform type
@@ -138,11 +161,11 @@ interface PartsShopData {
     availableCount: number
     /**
      * Item price number
-     */ 
+     */
     price: number
     /**
      * Item description text
-     */ 
+     */
     condition: ItemCondition
     /**
      * Image source url
@@ -150,7 +173,7 @@ interface PartsShopData {
     imageSrc?: string | string[]
     /**
      * Item description text
-     */ 
+     */
     description?: string
     /**
      * Item external URL

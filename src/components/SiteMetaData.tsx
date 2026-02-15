@@ -20,13 +20,15 @@ export default ({ title, description, image }: MetaDataProps) => {
 
             {/* Site icon */}
             <meta property="og:image" content={image || siteUrl + defaultImage}></meta>
-            <link rel="icon" href={image || siteUrl + defaultImage} />
-            <link rel="apple-touch-icon" href={image || siteUrl + defaultImage} />
+            <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+            <link rel="apple-touch-icon" href="/favicon.png" />
 
             {/* Site description */}
             <meta name="description" content={description || defaultDescription} />
-            <meta name="keywords" content="public, parts, pubparts, pubwheel, onewheel, pev, aftermarket"/>
-            
+            <meta name="keywords" content="public, parts, pubparts, pubwheel, onewheel, pev, aftermarket" />
+
             {/* Site properties */}
             <meta property="og:type" content="website" />
             <meta property="og:locale" content="en_US" />

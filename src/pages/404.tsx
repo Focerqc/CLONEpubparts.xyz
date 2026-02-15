@@ -8,7 +8,7 @@ import SiteNavbar from "../components/SiteNavbar"
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
-        <SiteMetaData title="404 | PubParts.xyz" />
+        <SiteMetaData title="404 | ESK8CAD.COM" />
     </>
 )
 
@@ -24,7 +24,7 @@ const NotFoundPage: React.FC<PageProps> = () => {
 
                 <p className="tagline flex-center">That page doesn't exist</p>
             </header>
-            
+
             <main>
                 <Container>
                     <div className="flex-center">

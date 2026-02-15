@@ -151,7 +151,7 @@ const SubmitPage: React.FC<PageProps> = () => {
             <Container className="py-5" style={{ maxWidth: '900px' }}>
                 <header className="text-center mb-5">
                     <h1 className="display-4 fw-bold">Submit a Part</h1>
-                    <p className="text-light opacity-50">Contribute open-source parts to the global ESK8 catalog.</p>
+                    <p className="text-light opacity-50">Contribute CAD models and parts to our ESK8 catalog.</p>
                 </header>
 
                 <ClientOnly fallback={<div className="text-center py-5"><Spinner animation="border" /></div>}>

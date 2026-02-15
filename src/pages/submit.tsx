@@ -19,15 +19,16 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successData, setSuccessData] = useState<{ prUrl?: string, manualUrl?: string } | null>(null)
+    const [activeField, setActiveField] = useState<'platform' | 'fabricationMethod' | 'typeOfPart' | null>(null)
 
     // Form Data
     const [url, setUrl] = useState("")
     const [partData, setPartData] = useState({
         title: "",
         imageSrc: "",
-        platform: "Miscellaneous Items",
+        platform: [] as string[],
         description: "",
-        fabricationMethod: "3d Printed",
+        fabricationMethod: ["3d Printed"] as string[],
         typeOfPart: [] as string[],
         dropboxUrl: "",
         dropboxZipLastUpdated: new Date().toISOString().split('T')[0]
@@ -46,13 +47,15 @@ const SubmitPage: React.FC<PageProps> = () => {
         "Gasket", "Bracket", "Miscellaneous"
     ]
 
-    // Tag management
-    const toggleTag = (tag: string) => {
-        if (partData.typeOfPart.includes(tag)) {
-            setPartData({ ...partData, typeOfPart: partData.typeOfPart.filter(t => t !== tag) })
-        } else {
-            setPartData({ ...partData, typeOfPart: [...partData.typeOfPart, tag] })
-        }
+    // Generic toggle for array fields
+    const toggleArrayValue = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', value: string) => {
+        setPartData(prev => {
+            const current = (prev as any)[field] as string[];
+            const next = current.includes(value)
+                ? current.filter(v => v !== value)
+                : [...current, value];
+            return { ...prev, [field]: next };
+        });
     }
 
     // Step 1: Scrape
@@ -100,8 +103,8 @@ const SubmitPage: React.FC<PageProps> = () => {
                     editedPart: {
                         title: partData.title,
                         imageSrc: partData.imageSrc,
-                        platform: [partData.platform],
-                        fabricationMethod: [partData.fabricationMethod],
+                        platform: partData.platform.length > 0 ? partData.platform : ["Other"],
+                        fabricationMethod: partData.fabricationMethod.length > 0 ? partData.fabricationMethod : ["Other"],
                         typeOfPart: partData.typeOfPart,
                         dropboxUrl: partData.dropboxUrl,
                         dropboxZipLastUpdated: partData.dropboxZipLastUpdated
@@ -183,29 +186,8 @@ const SubmitPage: React.FC<PageProps> = () => {
                                 </Card.Header>
                                 <Card.Body className="p-5">
                                     <Form onSubmit={handleSubmit}>
-                                        <Row>
-                                            <Col md={4} className="mb-4 text-center">
-                                                {partData.imageSrc ? (
-                                                    <div className="position-relative">
-                                                        <Image src={partData.imageSrc} fluid rounded className="bg-dark border-secondary mb-3 shadow" style={{ maxHeight: '250px', objectFit: 'cover' }} />
-                                                    </div>
-                                                ) : (
-                                                    <div className="d-flex align-items-center justify-content-center bg-secondary text-light rounded mb-3 shadow" style={{ height: '200px' }}>
-                                                        <span className="text-muted">No Image Found</span>
-                                                    </div>
-                                                )}
-                                                <Form.Group className="mb-3 text-start">
-                                                    <Form.Label className="fw-bold">Image URL</Form.Label>
-                                                    <Form.Control
-                                                        type="url"
-                                                        value={partData.imageSrc}
-                                                        onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
-                                                        placeholder="Manually paste an image link if needed"
-                                                        className="bg-secondary text-light border-secondary p-3"
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={8}>
+                                        <Row className="mb-4">
+                                            <Col md={7}>
                                                 <Form.Group className="mb-4">
                                                     <Form.Label className="fw-bold">Part Title</Form.Label>
                                                     <Form.Control
@@ -218,82 +200,162 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                     />
                                                 </Form.Group>
 
-                                                <Row>
-                                                    <Col lg={6}>
-                                                        <Form.Group className="mb-4">
-                                                            <Form.Label className="fw-bold">Target Platform</Form.Label>
-                                                            <Form.Select
-                                                                value={partData.platform}
-                                                                onChange={e => setPartData({ ...partData, platform: e.target.value })}
-                                                                className="bg-secondary text-light border-secondary p-3"
-                                                            >
-                                                                {platforms.sort().map(p => <option key={p} value={p}>{p}</option>)}
-                                                            </Form.Select>
-                                                        </Form.Group>
-                                                    </Col>
-                                                    <Col lg={6}>
-                                                        <Form.Group className="mb-4">
-                                                            <Form.Label className="fw-bold">Fabrication Method</Form.Label>
-                                                            <Form.Select
-                                                                value={partData.fabricationMethod}
-                                                                onChange={e => setPartData({ ...partData, fabricationMethod: e.target.value })}
-                                                                className="bg-secondary text-light border-secondary p-3"
-                                                            >
-                                                                {fabricationMethods.map(m => <option key={m} value={m}>{m}</option>)}
-                                                            </Form.Select>
-                                                        </Form.Group>
-                                                    </Col>
-                                                </Row>
-
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold d-block mb-3">Part Tags</Form.Label>
-                                                    <Form.Select
-                                                        className="bg-secondary text-light border-secondary p-3 mb-3"
-                                                        value=""
-                                                        onChange={e => {
-                                                            if (e.target.value) toggleTag(e.target.value);
-                                                            e.target.value = "";
-                                                        }}
-                                                    >
-                                                        <option value="">Select a tag to add/remove...</option>
-                                                        {commonTags.sort().map(tag => (
-                                                            <option key={tag} value={tag}>
-                                                                {partData.typeOfPart.includes(tag) ? `✓ ${tag}` : tag}
-                                                            </option>
-                                                        ))}
-                                                    </Form.Select>
-
-                                                    {partData.typeOfPart.length > 0 && (
-                                                        <div className="d-flex flex-wrap gap-2 mb-3 p-3 border border-secondary rounded bg-dark" style={{ backgroundColor: '#16191c' }}>
-                                                            {partData.typeOfPart.sort().map(tag => (
-                                                                <Badge
-                                                                    key={tag}
-                                                                    pill
-                                                                    bg="primary"
-                                                                    className="p-2 fs-6"
-                                                                    style={{ cursor: 'pointer' }}
-                                                                    onClick={() => toggleTag(tag)}
-                                                                >
-                                                                    {tag} ×
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    <Form.Text className="text-muted">Select tags from the dropdown. Click a badge above to remove it.</Form.Text>
-                                                </Form.Group>
-
-                                                <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold">Mirror Download Link <Badge bg="secondary" className="ms-2 opacity-75">Optional</Badge></Form.Label>
+                                                    <Form.Label className="fw-bold">Image URL</Form.Label>
                                                     <Form.Control
                                                         type="url"
-                                                        placeholder="Direct link to Dropbox, GDrive, Mega, etc."
-                                                        value={partData.dropboxUrl}
-                                                        onChange={e => setPartData({ ...partData, dropboxUrl: e.target.value })}
+                                                        value={partData.imageSrc}
+                                                        onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
+                                                        placeholder="Manually paste an image link if needed"
                                                         className="bg-secondary text-light border-secondary p-3"
                                                     />
-                                                    <Form.Text className="text-muted">A secondary link in case the original goes down.</Form.Text>
                                                 </Form.Group>
+                                            </Col>
+                                            <Col md={5} className="text-center">
+                                                {partData.imageSrc ? (
+                                                    <div className="position-relative h-100 d-flex align-items-center">
+                                                        <Image src={partData.imageSrc} fluid rounded className="bg-dark border-secondary shadow w-100" style={{ maxHeight: '350px', objectFit: 'cover' }} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="d-flex align-items-center justify-content-center bg-secondary text-light rounded shadow h-100" style={{ minHeight: '200px' }}>
+                                                        <span className="text-muted">No Image Found</span>
+                                                    </div>
+                                                )}
+                                            </Col>
+                                        </Row>
 
+                                        <div className="mb-5">
+                                            {/* Tab-like buttons over the selection box */}
+                                            <div className="d-flex gap-2 mb-0">
+                                                <div
+                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'platform' ? 'bg-primary border-primary text-white' : 'bg-dark border-secondary text-muted'} cursor-pointer fw-bold`}
+                                                    onClick={() => setActiveField('platform')}
+                                                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                                                >
+                                                    Target Platform(s) {partData.platform.length > 0 && <Badge bg="light" text="dark" className="ms-2">{partData.platform.length}</Badge>}
+                                                </div>
+                                                <div
+                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'typeOfPart' ? 'bg-primary border-primary text-white' : 'bg-dark border-secondary text-muted'} cursor-pointer fw-bold`}
+                                                    onClick={() => setActiveField('typeOfPart')}
+                                                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                                                >
+                                                    Part Tags {partData.typeOfPart.length > 0 && <Badge bg="light" text="dark" className="ms-2">{partData.typeOfPart.length}</Badge>}
+                                                </div>
+                                            </div>
+
+                                            {/* Full-width Selection Box */}
+                                            <div
+                                                className="p-4 rounded-bottom rounded-end border border-secondary shadow-inner"
+                                                style={{
+                                                    backgroundColor: '#111315',
+                                                    minHeight: '220px',
+                                                    borderWidth: '2px',
+                                                    marginTop: '-1px' // connect to tabs
+                                                }}
+                                            >
+                                                {!activeField || activeField === 'fabricationMethod' ? (
+                                                    <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted py-5 text-center">
+                                                        <p className="mb-2 fw-bold">Select Categorization</p>
+                                                        <p className="mb-0 small">Click "Target Platform(s)" or "Part Tags" above to begin categorizing your part.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                                            <h6 className="text-primary fw-bold mb-0">
+                                                                Select {activeField === 'platform' ? 'Platforms' : 'Tags'}
+                                                            </h6>
+                                                            <Button variant="link" size="sm" className="text-muted p-0" onClick={() => setActiveField(null)}>Close</Button>
+                                                        </div>
+                                                        <div className="d-flex flex-wrap gap-2">
+                                                            {(activeField === 'platform' ? platforms.sort() : commonTags.sort()).map(opt => {
+                                                                const isSelected = (partData as any)[activeField].includes(opt);
+                                                                return (
+                                                                    <Button
+                                                                        key={opt}
+                                                                        variant={isSelected ? "primary" : "outline-secondary"}
+                                                                        size="sm"
+                                                                        onClick={() => toggleArrayValue(activeField, opt)}
+                                                                        className="px-3 py-2 fw-medium border-2"
+                                                                        style={{ minWidth: 'fit-content' }}
+                                                                    >
+                                                                        {opt} {isSelected && "✓"}
+                                                                    </Button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Active selections summary */}
+                                            {(partData.platform.length > 0 || partData.typeOfPart.length > 0) && (
+                                                <div className="mt-3 d-flex flex-wrap gap-2">
+                                                    {partData.platform.map(p => <Badge key={p} pill bg="info" className="p-2">Platform: {p}</Badge>)}
+                                                    {partData.typeOfPart.map(t => <Badge key={t} pill bg="success" className="p-2">Tag: {t}</Badge>)}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <hr className="my-5 border-secondary" />
+
+                                        <Form.Group className="mb-4">
+                                            <Form.Label className="fw-bold">Mirror Download Link <Badge bg="secondary" className="ms-2 opacity-75">Optional</Badge></Form.Label>
+                                            <Form.Control
+                                                type="url"
+                                                placeholder="Direct link to Dropbox, GDrive, Mega, etc."
+                                                value={partData.dropboxUrl}
+                                                onChange={e => setPartData({ ...partData, dropboxUrl: e.target.value })}
+                                                className="bg-secondary text-light border-secondary p-3"
+                                            />
+                                            <Form.Text className="text-muted">A secondary link in case the original goes down.</Form.Text>
+                                        </Form.Group>
+
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-4">
+                                                    <Form.Label className="fw-bold">Fabrication Method(s)</Form.Label>
+                                                    <div
+                                                        className={`p-3 rounded border ${activeField === 'fabricationMethod' ? 'border-primary' : 'border-secondary'} bg-secondary text-light cursor-pointer d-flex flex-wrap gap-2`}
+                                                        onClick={() => setActiveField('fabricationMethod')}
+                                                        style={{ cursor: 'pointer', minHeight: '58px' }}
+                                                    >
+                                                        {partData.fabricationMethod.length > 0 ? (
+                                                            partData.fabricationMethod.map(m => (
+                                                                <Badge
+                                                                    key={m}
+                                                                    bg="primary"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleArrayValue('fabricationMethod', m);
+                                                                    }}
+                                                                >
+                                                                    {m} ×
+                                                                </Badge>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-muted">Tap to select methods...</span>
+                                                        )}
+                                                    </div>
+                                                    {activeField === 'fabricationMethod' && (
+                                                        <div className="mt-2 p-3 bg-dark border border-secondary rounded d-flex flex-wrap gap-2">
+                                                            {fabricationMethods.sort().map(m => {
+                                                                const isSelected = partData.fabricationMethod.includes(m);
+                                                                return (
+                                                                    <Button
+                                                                        key={m}
+                                                                        variant={isSelected ? "primary" : "outline-secondary"}
+                                                                        size="sm"
+                                                                        onClick={() => toggleArrayValue('fabricationMethod', m)}
+                                                                    >
+                                                                        {m}
+                                                                    </Button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
                                                 <Form.Group className="mb-4">
                                                     <Form.Label className="fw-bold">Last Updated</Form.Label>
                                                     <Form.Control
@@ -305,6 +367,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 </Form.Group>
                                             </Col>
                                         </Row>
+
 
                                         <div className="d-flex gap-3 justify-content-end mt-5 pt-4 border-top border-secondary">
                                             <Button variant="outline-light" onClick={() => setStep('input')} disabled={isLoading} className="px-4 py-2">Back</Button>

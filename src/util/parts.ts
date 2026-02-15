@@ -3047,6 +3047,23 @@ const allParts = [
     "Miscellaneous Items"
   ]
 }
+, 
+{
+  "title": "Submit Part | PubParts.xyz",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Stand"
+  ],
+  "imageSrc": "https://esk8cad.com/favicon.ico",
+  "externalUrl": "https://esk8cad.com/submit/",
+  "dropboxUrl": "https://esk8cad.com/submit/",
+  "dropboxZipLastUpdated": "2026-02-15",
+  "platform": [
+    "Miscellaneous Items"
+  ]
+}
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {

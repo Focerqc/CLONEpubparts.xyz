@@ -3013,6 +3013,23 @@ const allParts = [
         dropboxZipLastUpdated: "2026-02-06",
         platform: ["XR/Funwheel"]
     }
+, 
+{
+  "title": "helmet hook (many versions) by Ri3del | Download free STL model | Printables.com",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Miscellaneous"
+  ],
+  "imageSrc": "https://media.printables.com/media/prints/61034/images/640075_2c7ef56b-4702-471c-930a-bde35678ea53/thumbs/cover/1200x630/jpg/large_display_img_20200205_190120_61034.jpg",
+  "externalUrl": "https://www.printables.com/model/61034-helmet-hook-many-versions",
+  "dropboxUrl": "",
+  "dropboxZipLastUpdated": "2026-02-15",
+  "platform": [
+    "Miscellaneous Items"
+  ]
+}
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {

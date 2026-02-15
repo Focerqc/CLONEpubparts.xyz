@@ -3013,6 +3013,23 @@ const allParts = [
         dropboxZipLastUpdated: "2026-02-06",
         platform: ["XR/Funwheel"]
     }
+, 
+{
+  "title": "test1234444",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Stand"
+  ],
+  "imageSrc": "",
+  "externalUrl": "https://www.printables.com/model/61034-helmet-hook-many-versions",
+  "dropboxUrl": "https://www.printables.com/model/61034-helmet-hook-many-versions",
+  "dropboxZipLastUpdated": "2026-02-15",
+  "platform": [
+    "Miscellaneous Items"
+  ]
+}
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {

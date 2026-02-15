@@ -58,7 +58,7 @@ const SubmitPage: React.FC<PageProps> = () => {
         });
     }
 
-    // Step 1: Scrape
+    // Step 1: Scrape Printables Metadata
     const handleScrape = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!url) return
@@ -67,19 +67,34 @@ const SubmitPage: React.FC<PageProps> = () => {
         setError(null)
 
         try {
-            const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`)
-            if (!res.ok) throw new Error('Failed to fetch/scrape URL')
+            // Updated Brain Swap: Uses a CORS proxy and DOM parser for client-side scraping
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url.trim())}`
+            const res = await fetch(proxyUrl)
+            if (!res.ok) throw new Error('Failed to reach Printables.com via proxy')
 
-            const data = await res.json()
+            const html = await res.text()
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(html, 'text/html')
+
+            // Scraping Selectors based on https://github.com/GhostTypes/printables-cli-api
+            let title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content')
+                || doc.querySelector('title')?.innerText
+                || ""
+
+            // UI Refinement: Strip the bulky suffix from Printables titles
+            title = title.replace(" | Download free STL model | Printables.com", "").trim()
+
+            const imageSrc = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || ""
+
             setPartData(prev => ({
                 ...prev,
-                title: data.title || "",
-                imageSrc: data.imageSrc || "",
-                description: data.description || ""
+                title: title,
+                imageSrc: imageSrc
             }))
             setStep('review')
         } catch (err: any) {
             console.error('Scrape error:', err)
+            setError(`Automated scraping failed: ${err.message}. Please verify the link or enter details manually.`)
             // Fallback: allow manual entry if scrape fails
             setPartData(prev => ({ ...prev, title: "" }))
             setStep('review')
@@ -189,32 +204,32 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         <Row className="mb-4">
                                             <Col md={7}>
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold">Part Title</Form.Label>
+                                                    <Form.Label className="fw-bold text-white">Part Title</Form.Label>
                                                     <Form.Control
                                                         type="text"
                                                         value={partData.title}
                                                         onChange={e => setPartData({ ...partData, title: e.target.value })}
                                                         required
                                                         placeholder="Enter the name of the part"
-                                                        className="bg-secondary text-light border-secondary p-3"
+                                                        className="bg-secondary text-light border-secondary p-3 shadow-sm"
                                                     />
                                                 </Form.Group>
 
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold">Image URL</Form.Label>
+                                                    <Form.Label className="fw-bold text-white">Image URL</Form.Label>
                                                     <Form.Control
                                                         type="url"
                                                         value={partData.imageSrc}
                                                         onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
                                                         placeholder="Manually paste an image link if needed"
-                                                        className="bg-secondary text-light border-secondary p-3"
+                                                        className="bg-secondary text-light border-secondary p-3 shadow-sm"
                                                     />
                                                 </Form.Group>
                                             </Col>
                                             <Col md={5} className="text-center">
                                                 {partData.imageSrc ? (
                                                     <div className="position-relative h-100 d-flex align-items-center">
-                                                        <Image src={partData.imageSrc} fluid rounded className="bg-dark border-secondary shadow w-100" style={{ maxHeight: '350px', objectFit: 'cover' }} />
+                                                        <Image src={partData.imageSrc} alt="Preview" fluid rounded className="bg-dark border-secondary shadow w-100" style={{ maxHeight: '350px', objectFit: 'cover' }} />
                                                     </div>
                                                 ) : (
                                                     <div className="d-flex align-items-center justify-content-center bg-secondary text-light rounded shadow h-100" style={{ minHeight: '200px' }}>
@@ -225,19 +240,19 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         </Row>
 
                                         <div className="mb-5">
-                                            {/* Tab-like buttons over the selection box */}
+                                            {/* Tab-like buttons: Enhanced for high contrast and legibility */}
                                             <div className="d-flex gap-2 mb-0">
                                                 <div
-                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'platform' ? 'bg-primary border-primary text-white' : 'bg-dark border-secondary text-muted'} cursor-pointer fw-bold`}
+                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'platform' ? 'bg-primary border-primary text-white shadow' : 'bg-dark border-secondary text-light opacity-75'} cursor-pointer fw-bold`}
                                                     onClick={() => setActiveField('platform')}
-                                                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                                                    style={{ cursor: 'pointer', transition: 'all 0.2s', fontSize: '1.05rem' }}
                                                 >
                                                     Target Platform(s) {partData.platform.length > 0 && <Badge bg="light" text="dark" className="ms-2">{partData.platform.length}</Badge>}
                                                 </div>
                                                 <div
-                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'typeOfPart' ? 'bg-primary border-primary text-white' : 'bg-dark border-secondary text-muted'} cursor-pointer fw-bold`}
+                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'typeOfPart' ? 'bg-primary border-primary text-white shadow' : 'bg-dark border-secondary text-light opacity-75'} cursor-pointer fw-bold`}
                                                     onClick={() => setActiveField('typeOfPart')}
-                                                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                                                    style={{ cursor: 'pointer', transition: 'all 0.2s', fontSize: '1.05rem' }}
                                                 >
                                                     Part Tags {partData.typeOfPart.length > 0 && <Badge bg="light" text="dark" className="ms-2">{partData.typeOfPart.length}</Badge>}
                                                 </div>
@@ -255,7 +270,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             >
                                                 {!activeField || activeField === 'fabricationMethod' ? (
                                                     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted py-5 text-center">
-                                                        <p className="mb-2 fw-bold">Select Categorization</p>
+                                                        <p className="mb-2 fw-bold text-light">Select Categorization</p>
                                                         <p className="mb-0 small">Click "Target Platform(s)" or "Part Tags" above to begin categorizing your part.</p>
                                                     </div>
                                                 ) : (
@@ -299,13 +314,13 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         <hr className="my-5 border-secondary" />
 
                                         <Form.Group className="mb-4">
-                                            <Form.Label className="fw-bold">Mirror Download Link <Badge bg="secondary" className="ms-2 opacity-75">Optional</Badge></Form.Label>
+                                            <Form.Label className="fw-bold text-white">Mirror Download Link <Badge bg="secondary" className="ms-2 opacity-75">Optional</Badge></Form.Label>
                                             <Form.Control
                                                 type="url"
                                                 placeholder="Direct link to Dropbox, GDrive, Mega, etc."
                                                 value={partData.dropboxUrl}
                                                 onChange={e => setPartData({ ...partData, dropboxUrl: e.target.value })}
-                                                className="bg-secondary text-light border-secondary p-3"
+                                                className="bg-secondary text-light border-secondary p-3 shadow-sm"
                                             />
                                             <Form.Text className="text-muted">A secondary link in case the original goes down.</Form.Text>
                                         </Form.Group>
@@ -313,9 +328,9 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         <Row>
                                             <Col md={6}>
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold">Fabrication Method(s)</Form.Label>
+                                                    <Form.Label className="fw-bold text-white">Fabrication Method(s)</Form.Label>
                                                     <div
-                                                        className={`p-3 rounded border ${activeField === 'fabricationMethod' ? 'border-primary' : 'border-secondary'} bg-secondary text-light cursor-pointer d-flex flex-wrap gap-2`}
+                                                        className={`p-3 rounded border ${activeField === 'fabricationMethod' ? 'border-primary' : 'border-secondary'} bg-secondary text-light cursor-pointer d-flex flex-wrap gap-2 shadow-sm`}
                                                         onClick={() => setActiveField('fabricationMethod')}
                                                         style={{ cursor: 'pointer', minHeight: '58px' }}
                                                     >
@@ -337,7 +352,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                         )}
                                                     </div>
                                                     {activeField === 'fabricationMethod' && (
-                                                        <div className="mt-2 p-3 bg-dark border border-secondary rounded d-flex flex-wrap gap-2">
+                                                        <div className="mt-2 p-3 bg-dark border border-secondary rounded d-flex flex-wrap gap-2 shadow">
                                                             {fabricationMethods.sort().map(m => {
                                                                 const isSelected = partData.fabricationMethod.includes(m);
                                                                 return (
@@ -357,17 +372,16 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             </Col>
                                             <Col md={6}>
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold">Last Updated</Form.Label>
+                                                    <Form.Label className="fw-bold text-white">Last Updated</Form.Label>
                                                     <Form.Control
                                                         type="date"
                                                         value={partData.dropboxZipLastUpdated}
                                                         onChange={e => setPartData({ ...partData, dropboxZipLastUpdated: e.target.value })}
-                                                        className="bg-dark text-light border-secondary p-3"
+                                                        className="bg-dark text-light border-secondary p-3 shadow-sm"
                                                     />
                                                 </Form.Group>
                                             </Col>
                                         </Row>
-
 
                                         <div className="d-flex gap-3 justify-content-end mt-5 pt-4 border-top border-secondary">
                                             <Button variant="outline-light" onClick={() => setStep('input')} disabled={isLoading} className="px-4 py-2">Back</Button>
@@ -432,9 +446,9 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             setStep('input')
                                             setUrl("")
                                             setPartData(prev => ({
-                                                title: "", imageSrc: "", platform: "Miscellaneous Items",
+                                                title: "", imageSrc: "", platform: [],
                                                 description: "", typeOfPart: [], dropboxUrl: "",
-                                                fabricationMethod: "3d Printed",
+                                                fabricationMethod: ["3d Printed"],
                                                 dropboxZipLastUpdated: new Date().toISOString().split('T')[0]
                                             }))
                                             setSuccessData(null)
@@ -471,6 +485,12 @@ const SubmitPage: React.FC<PageProps> = () => {
                 .badge-outline-secondary:hover {
                     background-color: #6c757d !important;
                     color: white !important;
+                }
+                .cursor-pointer {
+                    cursor: pointer;
+                }
+                .shadow-inner {
+                    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
                 }
             `}} />
         </div>

@@ -3030,6 +3030,23 @@ const allParts = [
     "Miscellaneous Items"
   ]
 }
+, 
+{
+  "title": "test222",
+  "fabricationMethod": [
+    "CNC"
+  ],
+  "typeOfPart": [
+    "Stand"
+  ],
+  "imageSrc": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNT7gZtQqgPuAOAjIl5fe3CKuVv-ZEdMkl_Q&s",
+  "externalUrl": "https://www.printables.com/model/61034-helmet-hook-many-versions",
+  "dropboxUrl": "https://elementsofmorphology.nih.gov/anatomy-head_face.shtml",
+  "dropboxZipLastUpdated": "2026-02-15",
+  "platform": [
+    "Miscellaneous Items"
+  ]
+}
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {

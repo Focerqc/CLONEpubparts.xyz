@@ -1,10 +1,19 @@
-
 import { type HeadFC, type PageProps } from "gatsby"
 import React, { useState } from "react"
 import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge } from "react-bootstrap"
 import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
+
+/**
+ * Diagnostic tracking for failed fetch attempts.
+ */
+interface FetchAttempt {
+    proxy: string;
+    status: number | string;
+    message: string;
+    snippet: string;
+}
 
 export const Head: HeadFC = () => (
     <>
@@ -14,134 +23,156 @@ export const Head: HeadFC = () => (
 )
 
 const SubmitPage: React.FC<PageProps> = () => {
-    // Steps: 'input' -> 'review' -> 'success'
+    // Stage Management: 'input' -> 'review' -> 'success'
     const [step, setStep] = useState<'input' | 'review' | 'success'>('input')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [successData, setSuccessData] = useState<{ prUrl?: string, manualUrl?: string } | null>(null)
-    const [activeField, setActiveField] = useState<'platform' | 'fabricationMethod' | 'typeOfPart' | null>(null)
+    const [diagnostics, setDiagnostics] = useState<FetchAttempt[]>([])
 
-    // Form Data
+    // Form State
     const [url, setUrl] = useState("")
     const [partData, setPartData] = useState({
         title: "",
         imageSrc: "",
         platform: [] as string[],
-        description: "",
         fabricationMethod: ["3d Printed"] as string[],
         typeOfPart: [] as string[],
         dropboxUrl: "",
         dropboxZipLastUpdated: new Date().toISOString().split('T')[0]
     })
 
-    const platforms = [
-        "MBoards", "Meepo", "Radium Performance", "Bioboards", "Hoyt St", "Lacroix", "Trampa", "Evolve", "Backfire", "Exway", "Onsra", "Wowgo", "Tynee", "Other"
-    ]
+    const [activeTab, setActiveTab] = useState<'platform' | 'tag' | null>(null)
 
-    const fabricationMethods = ["3d Printed", "CNC", "Molded", "Other"]
+    const PLATFORMS = ["MBoards", "Meepo", "Radium Performance", "Bioboards", "Hoyt St", "Lacroix", "Trampa", "Evolve", "Backfire", "Exway", "Onsra", "Wowgo", "Tynee", "Other"]
+    const TAGS = ["Deck", "Truck", "Motor", "Enclosure", "Adapter", "Battery Box", "Mount", "Hardware", "Remote", "BMS", "ESC", "Drivetrain", "Wheel", "Pulley", "Bearing", "Gasket", "Bracket", "Miscellaneous"]
+    const FAB_METHODS = ["3d Printed", "CNC", "Molded", "Other"]
 
-    const commonTags = [
-        "Deck", "Truck", "Motor", "Enclosure", "Adapter",
-        "Battery Box", "Mount", "Hardware", "Remote", "BMS",
-        "ESC", "Drivetrain", "Wheel", "Pulley", "Bearing",
-        "Gasket", "Bracket", "Miscellaneous"
-    ]
-
-    // Generic toggle for array fields
-    const toggleArrayValue = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', value: string) => {
+    const toggleArray = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {
         setPartData(prev => {
-            const current = (prev as any)[field] as string[];
-            const next = current.includes(value)
-                ? current.filter(v => v !== value)
-                : [...current, value];
-            return { ...prev, [field]: next };
+            const arr = (prev as any)[field] as string[];
+            return { ...prev, [field]: arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val] };
         });
     }
 
-    // Step 1: Scrape Printables Metadata
-    const handleScrape = async (e: React.FormEvent) => {
+    /**
+     * Resilient Metadata Scraper
+     * Implements a 3-stage proxy backup with 12s timeouts.
+     */
+    const handleFetchMetadata = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!url) return
+        const targetUrl = url.trim()
+
+        if (!targetUrl.startsWith("https://www.printables.com/model/") && !targetUrl.startsWith("https://www.thingiverse.com/thing:")) {
+            setError("Invalid URL. Only Printables and Thingiverse models are supported.")
+            return
+        }
 
         setIsLoading(true)
         setError(null)
+        setDiagnostics([])
 
-        try {
-            // Updated Brain Swap: Uses a CORS proxy and DOM parser for client-side scraping
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url.trim())}`
-            const res = await fetch(proxyUrl)
-            if (!res.ok) throw new Error('Failed to reach Printables.com via proxy')
+        // Proxy chain per diagnostic insights
+        const proxies = [
+            { name: "AllOrigins (Primary)", url: "https://api.allorigins.win/raw?url=" },
+            { name: "Bridged (Mirror)", url: "https://cors.bridged.cc/" },
+            { name: "CorsSH (Backup)", url: "https://proxy.cors.sh/" }
+        ]
 
-            const html = await res.text()
-            const parser = new DOMParser()
-            const doc = parser.parseFromString(html, 'text/html')
+        const attempts: FetchAttempt[] = []
+        let successResult: { title: string, image: string } | null = null
 
-            // Scraping Selectors based on https://github.com/GhostTypes/printables-cli-api
-            let title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content')
-                || doc.querySelector('title')?.innerText
-                || ""
+        // Testing: Verifying with https://www.printables.com/model/123-cube
+        for (const proxy of proxies) {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 12000) // 12s timeout
+            const encodedUrl = encodeURIComponent(targetUrl)
+            const finalRequestUrl = `${proxy.url}${encodedUrl}`
 
-            // UI Refinement: Strip the bulky suffix from Printables titles
-            title = title.replace(" | Download free STL model | Printables.com", "").trim()
+            try {
+                const res = await fetch(finalRequestUrl, {
+                    signal: controller.signal,
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+                })
 
-            const imageSrc = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || ""
+                const bodyText = await res.text()
+                clearTimeout(timeoutId)
 
-            setPartData(prev => ({
-                ...prev,
-                title: title,
-                imageSrc: imageSrc
-            }))
-            setStep('review')
-        } catch (err: any) {
-            console.error('Scrape error:', err)
-            setError(`Automated scraping failed: ${err.message}. Please verify the link or enter details manually.`)
-            // Fallback: allow manual entry if scrape fails
-            setPartData(prev => ({ ...prev, title: "" }))
-            setStep('review')
-        } finally {
-            setIsLoading(false)
+                if (!res.ok) {
+                    attempts.push({
+                        proxy: proxy.name,
+                        status: res.status,
+                        message: "Proxy returned error state",
+                        snippet: bodyText.substring(0, 300)
+                    })
+                    continue
+                }
+
+                const parser = new DOMParser()
+                const doc = parser.parseFromString(bodyText, "text/html")
+
+                // Extraction Logic
+                const metaTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || doc.title || ""
+                const cleanedTitle = metaTitle
+                    .replace(/ \| Download free STL model \| Printables\.com$/, '')
+                    .replace(/ - Thingiverse$/, '')
+                    .trim()
+
+                let metaImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content')
+                    || doc.querySelector('img[src*="preview"], img[src*="model"], img[src*="hero"]')?.getAttribute('src')
+                    || ""
+
+                if (metaImage && !metaImage.startsWith("http")) {
+                    metaImage = new URL(metaImage, targetUrl).href
+                }
+
+                if (cleanedTitle) {
+                    successResult = { title: cleanedTitle, image: metaImage }
+                    break
+                } else {
+                    attempts.push({
+                        proxy: proxy.name,
+                        status: "EMPTY_DATA",
+                        message: "Fetch succeeded but no metadata found in HTML",
+                        snippet: bodyText.substring(0, 300)
+                    })
+                }
+
+            } catch (err: any) {
+                clearTimeout(timeoutId)
+                attempts.push({
+                    proxy: proxy.name,
+                    status: err.name === 'AbortError' ? 'TIMEOUT' : 'EXCEPTION',
+                    message: err.message,
+                    snippet: "Check network connection or proxy availability"
+                })
+            }
         }
+
+        if (successResult) {
+            setPartData(prev => ({ ...prev, title: successResult!.title, imageSrc: successResult!.image }))
+            setStep('review')
+        } else {
+            setDiagnostics(attempts)
+            setError("Auto-fetch failed. Protection blocks vary; manual entry is provided.")
+            setStep('review')
+        }
+        setIsLoading(false)
     }
 
-    // Step 2: Submit PR
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleFinalSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
-        setError(null)
-
         try {
             const res = await fetch('/api/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    printablesUrl: url,
-                    editedPart: {
-                        title: partData.title,
-                        imageSrc: partData.imageSrc,
-                        platform: partData.platform.length > 0 ? partData.platform : ["Other"],
-                        fabricationMethod: partData.fabricationMethod.length > 0 ? partData.fabricationMethod : ["Other"],
-                        typeOfPart: partData.typeOfPart,
-                        dropboxUrl: partData.dropboxUrl,
-                        dropboxZipLastUpdated: partData.dropboxZipLastUpdated
-                    }
-                })
+                body: JSON.stringify({ printablesUrl: url, editedPart: partData })
             })
-
-            const text = await res.text()
-            let data
-            try {
-                data = JSON.parse(text)
-            } catch {
-                throw new Error(`Server error: ${text.substring(0, 100)}...`)
-            }
-
-            if (!res.ok) throw new Error(data.error || 'Submission failed')
-
-            setSuccessData(data)
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.error || "Submission failed")
             setStep('success')
         } catch (err: any) {
-            console.error('Submit error:', err)
-            setError(err.message || 'Submission failed')
+            setError(err.message)
         } finally {
             setIsLoading(false)
         }
@@ -149,349 +180,212 @@ const SubmitPage: React.FC<PageProps> = () => {
 
     return (
         <div className="bg-black text-light min-vh-100">
-            <header>
-                <SiteNavbar />
-                <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: '150px' }}>
+            <SiteNavbar />
+            <Container className="py-5" style={{ maxWidth: '900px' }}>
+                <header className="text-center mb-5">
                     <h1 className="display-4 fw-bold">Submit a Part</h1>
-                </Container>
-            </header>
+                    <p className="text-light opacity-50">Contribute to the global ESK8CAD repository.</p>
+                </header>
 
-            <main>
-                <Container className="py-5">
-                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                {error && <Alert variant="danger" className="mb-4 border-0 shadow-sm">{error}</Alert>}
 
-                        {error && <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-4">{error}</Alert>}
+                {/* STEP 1: INPUT URL */}
+                {step === 'input' && (
+                    <Card className="bg-dark text-light border-secondary shadow-lg">
+                        <Card.Body className="p-5">
+                            <Form onSubmit={handleFetchMetadata}>
+                                <Form.Group className="mb-4">
+                                    <Form.Label className="fw-bold fs-5">Project Link</Form.Label>
+                                    <Form.Control
+                                        type="url"
+                                        placeholder="https://www.printables.com/model/..."
+                                        className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                        value={url}
+                                        onChange={e => setUrl(e.target.value)}
+                                        required
+                                    />
+                                    <Form.Text className="text-light opacity-40">Supports Printables and Thingiverse URLs.</Form.Text>
+                                </Form.Group>
+                                <div className="d-grid gap-3">
+                                    <Button variant="primary" type="submit" size="lg" className="py-3 fw-bold" disabled={isLoading}>
+                                        {isLoading ? <><Spinner animation="border" size="sm" className="me-2" /> Scraping...</> : "Fetch Metadata"}
+                                    </Button>
+                                    <div className="text-center small text-light opacity-50">
+                                        Free proxies may timeout. Manual entry is always available.
+                                    </div>
+                                    <Button variant="outline-light" onClick={() => setStep('review')} className="opacity-50 mt-2">Skip & Enter Manually</Button>
+                                </div>
+                            </Form>
+                        </Card.Body>
+                    </Card>
+                )}
 
-                        {/* Step 1: Input URL */}
-                        {step === 'input' && (
-                            <Card className="bg-dark text-light border-secondary shadow-lg">
-                                <Card.Body className="p-5">
-                                    <h3 className="mb-4 text-center">Start Your Submission</h3>
-                                    <p className="mb-4 text-center text-muted">
-                                        Paste a Printables link to automatically scrape details and prepare your entry for the ESK8CAD catalog.
-                                    </p>
-                                    <Form onSubmit={handleScrape}>
+                {/* STEP 2: REVIEW & CUSTOMIZE */}
+                {step === 'review' && (
+                    <Form onSubmit={handleFinalSubmit}>
+                        <Card className="bg-dark text-light border-secondary shadow-lg mb-4">
+                            <Card.Header className="bg-secondary border-0 p-4">
+                                <h4 className="mb-0 fs-5 fw-bold">Meta Selection</h4>
+                            </Card.Header>
+                            <Card.Body className="p-4 p-md-5">
+                                <Row className="gx-5">
+                                    <Col md={7}>
                                         <Form.Group className="mb-4">
-                                            <Form.Label className="fw-bold">Printables URL</Form.Label>
+                                            <Form.Label className="small uppercase fw-bold opacity-75 text-light">Part Title</Form.Label>
                                             <Form.Control
-                                                type="url"
-                                                placeholder="https://www.printables.com/model/..."
-                                                value={url}
-                                                onChange={e => setUrl(e.target.value)}
+                                                className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                                value={partData.title}
+                                                onChange={e => setPartData({ ...partData, title: e.target.value })}
                                                 required
-                                                disabled={isLoading}
-                                                className="bg-secondary text-light border-secondary placeholder-light p-3"
+                                                placeholder="e.g. Radium Performance Motor Plate"
                                             />
                                         </Form.Group>
-                                        <div className="d-grid">
-                                            <Button variant="primary" type="submit" disabled={isLoading || !url} size="lg" className="py-3 shadow">
-                                                {isLoading ? <><Spinner size="sm" animation="border" className="me-2" /> Scraping...</> : 'Continue to Review'}
-                                            </Button>
-                                        </div>
-                                    </Form>
-                                </Card.Body>
-                            </Card>
-                        )}
-
-                        {/* Step 2: Review & Edit */}
-                        {step === 'review' && (
-                            <Card className="bg-dark text-light border-secondary shadow-lg">
-                                <Card.Header className="bg-secondary border-dark py-3">
-                                    <h4 className="mb-0">Review & Customize Details</h4>
-                                </Card.Header>
-                                <Card.Body className="p-5">
-                                    <Form onSubmit={handleSubmit}>
-                                        <Row className="mb-4">
-                                            <Col md={7}>
-                                                <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold text-white">Part Title</Form.Label>
-                                                    <Form.Control
-                                                        type="text"
-                                                        value={partData.title}
-                                                        onChange={e => setPartData({ ...partData, title: e.target.value })}
-                                                        required
-                                                        placeholder="Enter the name of the part"
-                                                        className="bg-secondary text-light border-secondary p-3 shadow-sm"
-                                                    />
-                                                </Form.Group>
-
-                                                <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold text-white">Image URL</Form.Label>
-                                                    <Form.Control
-                                                        type="url"
-                                                        value={partData.imageSrc}
-                                                        onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
-                                                        placeholder="Manually paste an image link if needed"
-                                                        className="bg-secondary text-light border-secondary p-3 shadow-sm"
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={5} className="text-center">
-                                                {partData.imageSrc ? (
-                                                    <div className="position-relative h-100 d-flex align-items-center">
-                                                        <Image src={partData.imageSrc} alt="Preview" fluid rounded className="bg-dark border-secondary shadow w-100" style={{ maxHeight: '350px', objectFit: 'cover' }} />
-                                                    </div>
-                                                ) : (
-                                                    <div className="d-flex align-items-center justify-content-center bg-secondary text-light rounded shadow h-100" style={{ minHeight: '200px' }}>
-                                                        <span className="text-muted">No Image Found</span>
-                                                    </div>
-                                                )}
-                                            </Col>
-                                        </Row>
-
-                                        <div className="mb-5">
-                                            {/* Tab-like buttons: Enhanced for high contrast and legibility */}
-                                            <div className="d-flex gap-2 mb-0">
-                                                <div
-                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'platform' ? 'bg-primary border-primary text-white shadow' : 'bg-dark border-secondary text-light opacity-75'} cursor-pointer fw-bold`}
-                                                    onClick={() => setActiveField('platform')}
-                                                    style={{ cursor: 'pointer', transition: 'all 0.2s', fontSize: '1.05rem' }}
-                                                >
-                                                    Target Platform(s) {partData.platform.length > 0 && <Badge bg="light" text="dark" className="ms-2">{partData.platform.length}</Badge>}
-                                                </div>
-                                                <div
-                                                    className={`px-4 py-3 rounded-top border-top border-start border-end ${activeField === 'typeOfPart' ? 'bg-primary border-primary text-white shadow' : 'bg-dark border-secondary text-light opacity-75'} cursor-pointer fw-bold`}
-                                                    onClick={() => setActiveField('typeOfPart')}
-                                                    style={{ cursor: 'pointer', transition: 'all 0.2s', fontSize: '1.05rem' }}
-                                                >
-                                                    Part Tags {partData.typeOfPart.length > 0 && <Badge bg="light" text="dark" className="ms-2">{partData.typeOfPart.length}</Badge>}
-                                                </div>
-                                            </div>
-
-                                            {/* Full-width Selection Box */}
-                                            <div
-                                                className="p-4 rounded-bottom rounded-end border border-secondary shadow-inner"
-                                                style={{
-                                                    backgroundColor: '#111315',
-                                                    minHeight: '220px',
-                                                    borderWidth: '2px',
-                                                    marginTop: '-1px' // connect to tabs
-                                                }}
-                                            >
-                                                {!activeField || activeField === 'fabricationMethod' ? (
-                                                    <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted py-5 text-center">
-                                                        <p className="mb-2 fw-bold text-light">Select Categorization</p>
-                                                        <p className="mb-0 small">Click "Target Platform(s)" or "Part Tags" above to begin categorizing your part.</p>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <div className="d-flex justify-content-between align-items-center mb-3">
-                                                            <h6 className="text-primary fw-bold mb-0">
-                                                                Select {activeField === 'platform' ? 'Platforms' : 'Tags'}
-                                                            </h6>
-                                                            <Button variant="link" size="sm" className="text-muted p-0" onClick={() => setActiveField(null)}>Close</Button>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap gap-2">
-                                                            {(activeField === 'platform' ? platforms.sort() : commonTags.sort()).map(opt => {
-                                                                const isSelected = (partData as any)[activeField].includes(opt);
-                                                                return (
-                                                                    <Button
-                                                                        key={opt}
-                                                                        variant={isSelected ? "primary" : "outline-secondary"}
-                                                                        size="sm"
-                                                                        onClick={() => toggleArrayValue(activeField, opt)}
-                                                                        className="px-3 py-2 fw-medium border-2"
-                                                                        style={{ minWidth: 'fit-content' }}
-                                                                    >
-                                                                        {opt} {isSelected && "✓"}
-                                                                    </Button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Active selections summary */}
-                                            {(partData.platform.length > 0 || partData.typeOfPart.length > 0) && (
-                                                <div className="mt-3 d-flex flex-wrap gap-2">
-                                                    {partData.platform.map(p => <Badge key={p} pill bg="info" className="p-2">Platform: {p}</Badge>)}
-                                                    {partData.typeOfPart.map(t => <Badge key={t} pill bg="success" className="p-2">Tag: {t}</Badge>)}
-                                                </div>
+                                        <Form.Group className="mb-4">
+                                            <Form.Label className="small uppercase fw-bold opacity-75 text-light">Image Source (Direct Link)</Form.Label>
+                                            <Form.Control
+                                                className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                                value={partData.imageSrc}
+                                                onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
+                                                placeholder="https://..."
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={5}>
+                                        <Form.Label className="small uppercase fw-bold opacity-75 text-light">Visual Preview</Form.Label>
+                                        <div className="bg-black rounded border border-secondary overflow-hidden position-relative shadow-inner" style={{ width: '100%', paddingBottom: '75%', backgroundColor: '#090a0b' }}>
+                                            {partData.imageSrc ? (
+                                                <Image
+                                                    src={partData.imageSrc}
+                                                    className="position-absolute w-100 h-100 p-2"
+                                                    style={{ objectFit: 'contain' }}
+                                                    onError={(e) => { (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="h-100 d-flex align-items-center justify-content-center text-muted small">Preview unavailable</div>' }}
+                                                />
+                                            ) : (
+                                                <div className="position-absolute w-100 h-100 d-flex align-items-center justify-content-center text-muted small">No Preview</div>
                                             )}
                                         </div>
+                                    </Col>
+                                </Row>
 
-                                        <hr className="my-5 border-secondary" />
+                                <hr className="my-5 border-secondary opacity-25" />
 
-                                        <Form.Group className="mb-4">
-                                            <Form.Label className="fw-bold text-white">Mirror Download Link <Badge bg="secondary" className="ms-2 opacity-75">Optional</Badge></Form.Label>
-                                            <Form.Control
-                                                type="url"
-                                                placeholder="Direct link to Dropbox, GDrive, Mega, etc."
-                                                value={partData.dropboxUrl}
-                                                onChange={e => setPartData({ ...partData, dropboxUrl: e.target.value })}
-                                                className="bg-secondary text-light border-secondary p-3 shadow-sm"
-                                            />
-                                            <Form.Text className="text-muted">A secondary link in case the original goes down.</Form.Text>
-                                        </Form.Group>
-
-                                        <Row>
-                                            <Col md={6}>
-                                                <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold text-white">Fabrication Method(s)</Form.Label>
-                                                    <div
-                                                        className={`p-3 rounded border ${activeField === 'fabricationMethod' ? 'border-primary' : 'border-secondary'} bg-secondary text-light cursor-pointer d-flex flex-wrap gap-2 shadow-sm`}
-                                                        onClick={() => setActiveField('fabricationMethod')}
-                                                        style={{ cursor: 'pointer', minHeight: '58px' }}
+                                {/* CATEGORY SELECTOR TABS */}
+                                <div className="mb-5">
+                                    <div className="d-flex gap-2">
+                                        <Button variant={activeTab === 'platform' ? 'primary' : 'outline-light'} className="py-2 px-4 fw-bold shadow-sm" onClick={() => setActiveTab('platform')}>Board Platforms</Button>
+                                        <Button variant={activeTab === 'tag' ? 'primary' : 'outline-light'} className="py-2 px-4 fw-bold shadow-sm" onClick={() => setActiveTab('tag')}>Technical Tags</Button>
+                                    </div>
+                                    <div className={`mt-3 p-4 rounded bg-secondary border border-secondary shadow-sm ${!activeTab && 'd-none'}`}>
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {(activeTab === 'platform' ? PLATFORMS : TAGS).map(opt => {
+                                                const isSel = (activeTab === 'platform' ? partData.platform : partData.typeOfPart).includes(opt)
+                                                return (
+                                                    <Badge
+                                                        key={opt}
+                                                        bg={isSel ? "primary" : "none"}
+                                                        className={`p-2 border border-light cursor-pointer shadow-sm ${isSel ? 'text-white' : 'text-light opacity-40'}`}
+                                                        style={{ cursor: 'pointer', transition: 'all 0.1s ease' }}
+                                                        onClick={() => toggleArray(activeTab === 'platform' ? 'platform' : 'typeOfPart', opt)}
                                                     >
-                                                        {partData.fabricationMethod.length > 0 ? (
-                                                            partData.fabricationMethod.map(m => (
-                                                                <Badge
-                                                                    key={m}
-                                                                    bg="primary"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        toggleArrayValue('fabricationMethod', m);
-                                                                    }}
-                                                                >
-                                                                    {m} ×
-                                                                </Badge>
-                                                            ))
-                                                        ) : (
-                                                            <span className="text-muted">Tap to select methods...</span>
-                                                        )}
-                                                    </div>
-                                                    {activeField === 'fabricationMethod' && (
-                                                        <div className="mt-2 p-3 bg-dark border border-secondary rounded d-flex flex-wrap gap-2 shadow">
-                                                            {fabricationMethods.sort().map(m => {
-                                                                const isSelected = partData.fabricationMethod.includes(m);
-                                                                return (
-                                                                    <Button
-                                                                        key={m}
-                                                                        variant={isSelected ? "primary" : "outline-secondary"}
-                                                                        size="sm"
-                                                                        onClick={() => toggleArrayValue('fabricationMethod', m)}
-                                                                    >
-                                                                        {m}
-                                                                    </Button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={6}>
-                                                <Form.Group className="mb-4">
-                                                    <Form.Label className="fw-bold text-white">Last Updated</Form.Label>
-                                                    <Form.Control
-                                                        type="date"
-                                                        value={partData.dropboxZipLastUpdated}
-                                                        onChange={e => setPartData({ ...partData, dropboxZipLastUpdated: e.target.value })}
-                                                        className="bg-dark text-light border-secondary p-3 shadow-sm"
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                        </Row>
-
-                                        <div className="d-flex gap-3 justify-content-end mt-5 pt-4 border-top border-secondary">
-                                            <Button variant="outline-light" onClick={() => setStep('input')} disabled={isLoading} className="px-4 py-2">Back</Button>
-                                            <Button variant="primary" type="submit" disabled={isLoading} size="lg" className="px-5 py-3 shadow fw-bold">
-                                                {isLoading ? <><Spinner size="sm" animation="border" className="me-2" /> Processing...</> : 'Submit to Catalog'}
-                                            </Button>
+                                                        {opt} {isSel && "✓"}
+                                                    </Badge>
+                                                )
+                                            })}
                                         </div>
-                                        <div className="text-end mt-3">
-                                            <small className="text-muted">
-                                                Note: "Submit" means sending your data/changes to the site admins via a <strong>Pull Request</strong>, where it will be reviewed and merged into the live catalog.
-                                            </small>
-                                        </div>
-                                    </Form>
-                                </Card.Body>
-                            </Card>
-                        )}
-
-                        {/* Step 3: Success */}
-                        {step === 'success' && successData && (
-                            <Card className="bg-dark text-light border-secondary shadow-lg text-center overflow-hidden">
-                                <div className="bg-secondary py-4 border-bottom border-success" style={{ borderBottomWidth: '4px !important' }}>
-                                    <h4 className="mb-0 display-6 fw-bold text-white">Submission Processed!</h4>
+                                    </div>
+                                    <div className="mt-3 d-flex flex-wrap gap-2">
+                                        {partData.platform.map(p => <Badge key={p} bg="info" className="text-dark py-2 px-3 shadow-sm border border-info">P: {p}</Badge>)}
+                                        {partData.typeOfPart.map(t => <Badge key={t} bg="success" className="py-2 px-3 shadow-sm border border-success">T: {t}</Badge>)}
+                                    </div>
                                 </div>
-                                <Card.Body className="p-5">
-                                    <p className="lead mb-4">
-                                        Your part <strong>{partData.title}</strong> has been successfully prepared and submitted for review.
-                                    </p>
 
-                                    <div className="bg-secondary bg-opacity-25 p-4 rounded border border-secondary mb-5">
-                                        {successData.prUrl ? (
-                                            <>
-                                                <p className="mb-4">A <strong>Pull Request</strong> has been automatically created on GitHub. This is a request to an admin to add your data to the live site.</p>
-                                                <div className="d-grid gap-3">
-                                                    <Button href={successData.prUrl} target="_blank" variant="primary" size="lg" className="py-3 fw-bold">
-                                                        View Pull Request on GitHub
-                                                    </Button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="p-3 border border-warning rounded bg-warning bg-opacity-10 mb-4 text-start">
-                                                    <h5 className="text-warning">Action Required</h5>
-                                                    <p className="mb-0 small text-light">
-                                                        We successfully saved your changes to a new branch, but we couldn't automatically open the <strong>Pull Request</strong> due to GitHub permissions.
-                                                        <br /><br />
-                                                        <strong>What to do:</strong> Click the button below to open the GitHub compare page, then click "Create pull request" to finish submitting your data for review.
-                                                    </p>
-                                                </div>
-                                                {successData.manualUrl && (
-                                                    <div className="d-grid shadow">
-                                                        <Button href={successData.manualUrl} target="_blank" variant="warning" size="lg" className="py-3 fw-bold text-dark">
-                                                            Finish Pull Request Manually
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
+                                <Row className="mb-4">
+                                    <Col md={6}>
+                                        <Form.Label className="small uppercase fw-bold opacity-75 text-light">Methods</Form.Label>
+                                        <div className="d-flex flex-wrap gap-2 p-3 bg-secondary rounded border border-secondary shadow-inner">
+                                            {FAB_METHODS.map(m => (
+                                                <Button
+                                                    key={m}
+                                                    size="sm"
+                                                    variant={partData.fabricationMethod.includes(m) ? "primary" : "outline-light"}
+                                                    className="opacity-60 fw-bold border-1"
+                                                    onClick={() => toggleArray('fabricationMethod', m)}
+                                                >
+                                                    {m}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small uppercase fw-bold opacity-75 text-light">Mirror Link (Optional)</Form.Label>
+                                        <Form.Control
+                                            className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                            value={partData.dropboxUrl}
+                                            onChange={e => setPartData({ ...partData, dropboxUrl: e.target.value })}
+                                            placeholder="Direct file repository link"
+                                        />
+                                    </Col>
+                                </Row>
 
-                                    <div className="d-grid col-md-6 mx-auto">
-                                        <Button variant="outline-light" onClick={() => {
-                                            setStep('input')
-                                            setUrl("")
-                                            setPartData(prev => ({
-                                                title: "", imageSrc: "", platform: [],
-                                                description: "", typeOfPart: [], dropboxUrl: "",
-                                                fabricationMethod: ["3d Printed"],
-                                                dropboxZipLastUpdated: new Date().toISOString().split('T')[0]
-                                            }))
-                                            setSuccessData(null)
-                                        }} className="py-2">
-                                            Submit Another Part
-                                        </Button>
-                                    </div>
+                                <div className="mt-4 text-center">
+                                    <small className="text-light opacity-30">Local testing may be blocked by CORS; deployment environment uses edge proxies.</small>
+                                </div>
+                            </Card.Body>
+                            <Card.Footer className="bg-transparent border-0 p-4 text-end">
+                                <Button onClick={() => setStep('input')} variant="link" className="text-light opacity-40 me-3 text-decoration-none">Back</Button>
+                                <Button type="submit" variant="primary" size="lg" className="px-5 py-3 fw-bold shadow-lg" disabled={isLoading}>
+                                    {isLoading ? <Spinner animation="border" size="sm" /> : "Submit Pull Request"}
+                                </Button>
+                            </Card.Footer>
+                        </Card>
+                    </Form>
+                )}
 
-                                    <p className="small text-muted mt-5">
-                                        Once an admin merges your request, the part will be live on the site!
-                                    </p>
-                                </Card.Body>
-                            </Card>
-                        )}
+                {/* DIAGNOSTIC FETCH LOGS */}
+                {diagnostics.length > 0 && (
+                    <Card className="bg-dark border-danger text-light mb-5 shadow">
+                        <Card.Body>
+                            <details>
+                                <summary className="cursor-pointer text-danger fw-bold opacity-80">Full Scrape Diagnostic Logs ({diagnostics.length} attempts)</summary>
+                                <div className="mt-3 small">
+                                    {diagnostics.map((d, i) => (
+                                        <div key={i} className="mb-3 p-3 bg-black bg-opacity-50 rounded border border-secondary border-opacity-50 shadow-sm">
+                                            <div className="fw-bold text-info mb-1 uppercase letter-spacing-1">Attempt {i + 1}: {d.proxy}</div>
+                                            <div className="mb-2"><strong>Status:</strong> <span className="text-danger">{d.status}</span> | {d.message}</div>
+                                            <div className="text-light opacity-40 p-2 bg-dark rounded" style={{ fontSize: '0.7rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap', maxHeight: '150px' }}>
+                                                {d.snippet || "Internal error: No response body received."}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Card.Body>
+                    </Card>
+                )}
 
-                    </div>
-                </Container>
-            </main>
+                {/* STEP 3: SUCCESS STATE */}
+                {step === 'success' && (
+                    <Card className="bg-dark text-light border-secondary text-center p-5 shadow-lg">
+                        <div className="display-2 mb-4">🚀</div>
+                        <h2 className="fw-bold mb-4">Part Submitted!</h2>
+                        <p className="mb-5 text-light opacity-60 lead">Submission has been channeled to the ESK8CAD repository. Track progress on GitHub.</p>
+                        <Button variant="outline-light" size="lg" className="px-4" onClick={() => window.location.reload()}>Submit Another</Button>
+                    </Card>
+                )}
+            </Container>
 
             <SiteFooter />
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .form-control:focus, .form-select:focus {
-                    background-color: #495057 !important;
-                    color: white !important;
-                    border-color: #0d6efd !important;
-                    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
-                }
-                .badge-outline-secondary {
-                    background-color: transparent !important;
-                    color: #adb5bd !important;
-                }
-                .badge-outline-secondary:hover {
-                    background-color: #6c757d !important;
-                    color: white !important;
-                }
-                .cursor-pointer {
-                    cursor: pointer;
-                }
-                .shadow-inner {
-                    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
-                }
+                .bg-secondary { background-color: #121417 !important; }
+                .border-secondary { border-color: #24282d !important; }
+                .shadow-inner { box-shadow: inset 0 2px 8px rgba(0,0,0,0.7); }
+                .cursor-pointer { cursor: pointer; }
+                .uppercase { text-transform: uppercase; }
+                .letter-spacing-1 { letter-spacing: 0.05rem; }
+                .opacity-40 { opacity: 0.4; }
+                .opacity-60 { opacity: 0.6; }
             `}} />
         </div>
     )

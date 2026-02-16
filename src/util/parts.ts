@@ -22,13 +22,10 @@ const allParts = [
         platform: ["Radium Performance"]
     },
     // Platform Placeholders
-    { title: "placeholder_Floatwheel", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Floatwheel"] },
-    { title: "placeholder_GT/GT-S", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["GT/GT-S"] },
-    { title: "placeholder_Miscellaneous Items", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Miscellaneous Items"] },
-    { title: "placeholder_Pint/X/S", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Pint/X/S"] },
+    { title: "placeholder_Street (DIY/Generic)", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Street (DIY/Generic)"] },
+    { title: "placeholder_Off-Road (DIY/Generic)", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Off-Road (DIY/Generic)"] },
+    { title: "placeholder_Misc", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
     { title: "placeholder_VESC Electronics", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["VESC Electronics"] },
-    { title: "placeholder_XR/Funwheel", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["XR/Funwheel"] },
-    { title: "placeholder_XR Classic", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["XR Classic"] },
     { title: "placeholder_MBoards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["MBoards"] },
     { title: "placeholder_Meepo", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Meepo"] },
     { title: "placeholder_Radium Performance", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Radium Performance"] },
@@ -42,27 +39,26 @@ const allParts = [
     { title: "placeholder_Onsra", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Onsra"] },
     { title: "placeholder_Wowgo", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Wowgo"] },
     { title: "placeholder_Tynee", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Tynee"] },
-    { title: "placeholder_Other", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
 
     // Tag Placeholders
-    { title: "placeholder_Deck", fabricationMethod: ["Other"], typeOfPart: ["Deck"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Truck", fabricationMethod: ["Other"], typeOfPart: ["Truck"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Motor", fabricationMethod: ["Other"], typeOfPart: ["Motor"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Enclosure", fabricationMethod: ["Other"], typeOfPart: ["Enclosure"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Adapter", fabricationMethod: ["Other"], typeOfPart: ["Adapter"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Battery Box", fabricationMethod: ["Other"], typeOfPart: ["Battery Box"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Mount", fabricationMethod: ["Other"], typeOfPart: ["Mount"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Hardware", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Remote", fabricationMethod: ["Other"], typeOfPart: ["Remote"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_BMS", fabricationMethod: ["Other"], typeOfPart: ["BMS"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_ESC", fabricationMethod: ["Other"], typeOfPart: ["ESC"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Drivetrain", fabricationMethod: ["Other"], typeOfPart: ["Drivetrain"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Wheel", fabricationMethod: ["Other"], typeOfPart: ["Wheel"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Pulley", fabricationMethod: ["Other"], typeOfPart: ["Pulley"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Bearing", fabricationMethod: ["Other"], typeOfPart: ["Bearing"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Gasket", fabricationMethod: ["Other"], typeOfPart: ["Gasket"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Bracket", fabricationMethod: ["Other"], typeOfPart: ["Bracket"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] },
-    { title: "placeholder_Miscellaneous", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Other"] }
+    { title: "placeholder_Deck", fabricationMethod: ["Other"], typeOfPart: ["Deck"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Truck", fabricationMethod: ["Other"], typeOfPart: ["Truck"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Motor", fabricationMethod: ["Other"], typeOfPart: ["Motor"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Enclosure", fabricationMethod: ["Other"], typeOfPart: ["Enclosure"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Adapter", fabricationMethod: ["Other"], typeOfPart: ["Adapter"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Battery Box", fabricationMethod: ["Other"], typeOfPart: ["Battery Box"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Mount", fabricationMethod: ["Other"], typeOfPart: ["Mount"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Hardware", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Remote", fabricationMethod: ["Other"], typeOfPart: ["Remote"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_BMS", fabricationMethod: ["Other"], typeOfPart: ["BMS"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_ESC", fabricationMethod: ["Other"], typeOfPart: ["ESC"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Drivetrain", fabricationMethod: ["Other"], typeOfPart: ["Drivetrain"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Wheel", fabricationMethod: ["Other"], typeOfPart: ["Wheel"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Pulley", fabricationMethod: ["Other"], typeOfPart: ["Pulley"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Bearing", fabricationMethod: ["Other"], typeOfPart: ["Bearing"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Gasket", fabricationMethod: ["Other"], typeOfPart: ["Gasket"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Bracket", fabricationMethod: ["Other"], typeOfPart: ["Bracket"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
+    { title: "placeholder_Miscellaneous", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] }
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {
@@ -93,7 +89,9 @@ export const exwayParts = platform("Exway")
 export const onsraParts = platform("Onsra")
 export const wowgoParts = platform("Wowgo")
 export const tyneeParts = platform("Tynee")
-export const otherParts = platform("Other")
+export const streetParts = platform("Street (DIY/Generic)")
+export const offRoadParts = platform("Off-Road (DIY/Generic)")
+export const miscParts = platform("Misc")
 
 // Tag Exports
 export const deckParts = tag("Deck")
@@ -114,11 +112,4 @@ export const gasketParts = tag("Gasket")
 export const bracketParts = tag("Bracket")
 export const miscellaneousParts = tag("Miscellaneous")
 
-// Legacy Onewheel Exports
-export const floatwheelParts = platform("Floatwheel")
-export const gtParts = platform("GT/GT-S")
-export const miscParts = platform("Miscellaneous Items")
-export const pintParts = platform("Pint/X/S")
-export const vescElectronicsParts = platform("VESC Electronics")
-export const xrParts = platform("XR/Funwheel")
-export const xrClassicParts = platform("XR Classic")
+// Onewheel legacy data scrubbed

@@ -31,8 +31,8 @@ const Page: React.FC<PageProps> = () => {
             <main>
                 <Container>
                     <div className="mb-5 lead opacity-75 text-center mx-auto" style={{ maxWidth: '800px' }}>
-                        <p>A curated collection of open source ESK8 CAD files — .STEP and .STL formats for enclosures, motor mounts, trucks, and other custom components.</p>
-                        <p>We believe in a stronger, more resilient DIY community through shared designs. Contributions are always welcome.</p>
+                        <p>A curated collection of OEM and DIY ESK8 CAD files — .STEP and .STL formats for enclosures, motor mounts, trucks, and other custom components.</p>
+                        <p>We believe in a stronger, more resilient DIY community through shared designs. Contributions are welcome. See the navbar!.</p>
                         <p className="small">Onewheel parts? Visit <a href="https://PubParts.xyz" className="text-info text-decoration-none fw-bold">PubParts.xyz</a>.</p>
                     </div>
 

@@ -14,7 +14,7 @@ export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="VESC Electronics | PubParts.xyz"
+            title="VESC Electronics | ESK8CAD.COM"
             description="Open source or otherwise aftermarket electronics for no particular board platform" />
     </>
 )

@@ -8,14 +8,14 @@ import SiteFooter from "../../components/SiteFooter"
 import SiteMetaData from "../../components/SiteMetaData"
 import SiteNavbar from "../../components/SiteNavbar"
 import "../../scss/pages/items.scss"
-import { floatwheelParts } from "../../util/parts"
+import { streetParts } from "../../util/parts"
 
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Floatwheel Parts | ESK8CAD.COM"
-            description="Open source or otherwise aftermarket parts for the Floatwheel platform" />
+            title="Street DIY Parts | ESK8CAD.COM"
+            description="Open source or otherwise aftermarket parts for generic Street DIY platforms" />
     </>
 )
 
@@ -26,23 +26,23 @@ const Page: React.FC<PageProps> = () => {
                 <SiteNavbar />
 
                 <h1 className="flex-center">
-                    Floatwheel Parts
+                    Street DIY Parts
                 </h1>
             </header>
 
             <main className="page-items">
                 <Container>
                     {/* Search area */}
-                    <ItemListSearchbar partList={floatwheelParts} />
+                    <ItemListSearchbar partList={streetParts} />
 
                     {/* Search results headers */}
-                    <h2 id="itemListHeader" style={{display: "block"}}>Items</h2>
-                    <h2 id="noResultsText" style={{display: "none", minHeight: "200px"}}>No results.</h2>
+                    <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
+                    <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
 
                     <Row>
                         {/* List parts */}
-                        {!!floatwheelParts.length &&
-                            floatwheelParts.map(ItemCard)
+                        {!!streetParts.length &&
+                            streetParts.map(ItemCard)
                         }
 
                         {/* Copyright card */}
@@ -50,7 +50,7 @@ const Page: React.FC<PageProps> = () => {
                     </Row>
                 </Container>
             </main>
-                
+
             <SiteFooter />
         </>
     )

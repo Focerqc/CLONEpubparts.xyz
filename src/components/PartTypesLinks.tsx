@@ -7,20 +7,23 @@ import { Button } from "react-bootstrap"
  */
 const PartTypesLinks: React.FC = () => {
     const platforms = [
-        { label: "MBoards", href: "/parts/mboards" },
-        { label: "Meepo", href: "/parts/meepo" },
-        { label: "Radium Performance", href: "/parts/radium" },
+        { label: "Street board DIY/Generic", href: "/parts/street" },
+        { label: "Off-Road board DIY/Generic", href: "/parts/offroad" },
+        { label: "Misc", href: "/parts/misc" },
+        { label: "Backfire", href: "/parts/backfire" },
         { label: "Bioboards", href: "/parts/bioboards" },
+        { label: "Evolve", href: "/parts/evolve" },
+        { label: "Exway", href: "/parts/exway" },
         { label: "Hoyt St", href: "/parts/hoyt" },
         { label: "Lacroix", href: "/parts/lacroix" },
-        { label: "Trampa", href: "/parts/trampa" },
-        { label: "Evolve", href: "/parts/evolve" },
-        { label: "Backfire", href: "/parts/backfire" },
-        { label: "Exway", href: "/parts/exway" },
+        { label: "MBoards", href: "/parts/mboards" },
+        { label: "Meepo", href: "/parts/meepo" },
         { label: "Onsra", href: "/parts/onsra" },
-        { label: "Wowgo", href: "/parts/wowgo" },
+        { label: "Radium Performance", href: "/parts/radium" },
+        { label: "Trampa", href: "/parts/trampa" },
         { label: "Tynee", href: "/parts/tynee" },
-        { label: "Other", href: "/parts/other" }
+        { label: "VESC Electronics", href: "/parts/electronics" },
+        { label: "Wowgo", href: "/parts/wowgo" }
     ]
 
     return (

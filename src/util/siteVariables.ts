@@ -11,4 +11,4 @@ export const DiscordThread = "https://discord.com/channels/846794200308908065/12
 /**
  * Github repository link
  */
-export const GithubRepository = "https://github.com/Jared-Is-Coding/pubparts.xyz"
+export const GithubRepository = "https://github.com/Jared-Is-Coding/ESK8CAD.COM"

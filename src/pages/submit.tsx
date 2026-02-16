@@ -29,6 +29,7 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [attempts, setAttempts] = useState<FetchAttempt[]>([])
+    const [showManual, setShowManual] = useState(false)
 
     // Form State
     const [url, setUrl] = useState("")
@@ -44,8 +45,19 @@ const SubmitPage: React.FC<PageProps> = () => {
 
     const [activeTab, setActiveTab] = useState<'platform' | 'tag' | null>(null)
 
-    const PLATFORMS = ["MBoards", "Meepo", "Radium Performance", "Bioboards", "Hoyt St", "Lacroix", "Trampa", "Evolve", "Backfire", "Exway", "Onsra", "Wowgo", "Tynee", "Other"]
-    const TAGS = ["Deck", "Truck", "Motor", "Enclosure", "Adapter", "Battery Box", "Mount", "Hardware", "Remote", "BMS", "ESC", "Drivetrain", "Wheel", "Pulley", "Bearing", "Gasket", "Bracket", "Miscellaneous"]
+    const PLATFORMS = [
+        "Street (DIY/Generic)",
+        "Off-Road (DIY/Generic)",
+        "Misc",
+        "Backfire", "Bioboards", "Evolve", "Exway", "Hoyt St", "Lacroix", "MBoards", "Meepo", "Onsra", "Radium Performance", "Trampa", "Tynee", "VESC Electronics", "Wowgo"
+    ]
+    const TAGS = [
+        "Adapter", "Axle Block", "Battery Assembly", "Battery Box", "Bearing Cover", "BMS", "Bracket", "Breakout Board", "Bumper",
+        "Connector Cover", "Controller Box", "Controller", "Fender", "Fender Attachment", "Fender Delete", "Footpad",
+        "Footpad Attachment", "Gasket", "Hall Sensor", "LED", "Miscellaneous", "Motor", "Motor Cover", "Plug", "Port Cover",
+        "Rail Attachment", "Rails", "Remote", "Rim Saver", "Stand", "Tire", "Tool", "Deck", "Truck", "Enclosure",
+        "Mount", "Drivetrain", "Wheel", "Pulley", "Bearing", "ESC", "Hardware"
+    ].sort()
     const FAB_METHODS = ["3d Printed", "CNC", "Molded", "Other"]
 
     const toggleArray = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {
@@ -122,6 +134,7 @@ const SubmitPage: React.FC<PageProps> = () => {
             console.error("Scrape error:", err)
         } finally {
             setIsLoading(false)
+            setShowManual(true)
         }
     }
 
@@ -185,7 +198,6 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             <Button variant="primary" type="submit" size="lg" className="px-5 py-3 fw-bold" disabled={isLoading}>
                                                 {isLoading ? <><Spinner animation="border" size="sm" className="me-2" /> Fetching...</> : "Fetch Metadata"}
                                             </Button>
-                                            <Button variant="outline-light" onClick={() => setError(null)} className="opacity-50">Skip to Manual</Button>
                                         </div>
                                     </Form>
                                 </Card.Body>
@@ -195,7 +207,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                             <Form onSubmit={handleFinalSubmit}>
                                 <Card className="bg-dark text-light border-secondary shadow-lg mb-4">
                                     <Card.Header className="bg-secondary border-0 p-4">
-                                        <h4 className="mb-0 fs-5 fw-bold uppercase letter-spacing-1">Meta Selection</h4>
+                                        <h4 className="mb-0 fs-5 fw-bold uppercase letter-spacing-1">Manual Entry</h4>
                                     </Card.Header>
                                     <Card.Body className="p-4 p-md-5">
                                         <Row className="gx-5">

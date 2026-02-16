@@ -84,13 +84,10 @@ type FabricationMethod =
     | "PCB"
 
 type PlatformType =
-    | "Floatwheel"
-    | "GT/GT-S"
-    | "Miscellaneous Items"
-    | "Pint/X/S"
+    | "Street (DIY/Generic)"
+    | "Off-Road (DIY/Generic)"
+    | "Misc"
     | "VESC Electronics"
-    | "XR/Funwheel"
-    | "XR Classic"
     | "MBoards"
     | "Meepo"
     | "Radium Performance"
@@ -104,7 +101,6 @@ type PlatformType =
     | "Onsra"
     | "Wowgo"
     | "Tynee"
-    | "Other"
 
 interface ResourceData {
     /**

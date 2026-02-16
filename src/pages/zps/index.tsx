@@ -13,7 +13,7 @@ export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Catalog | ZiNc's Parts Shop on PubParts.xyz"
+            title="Catalog | ZiNc's Parts Shop on ESK8CAD.COM"
             description="Welcome to my shop" />
     </>
 )
@@ -30,7 +30,7 @@ const Page: React.FC<PageProps> = () => {
                     <Row>
                         <Col xs={12}>
                             <p className="full-width">
-                                <Button className="full-width" href="/" variant="outline-info" type="button" size="sm"><FaArrowLeft /> Back to Pubparts</Button>
+                                <Button className="full-width" href="/" variant="outline-info" type="button" size="sm"><FaArrowLeft /> Back to ESK8CAD</Button>
                             </p>
                         </Col>
 

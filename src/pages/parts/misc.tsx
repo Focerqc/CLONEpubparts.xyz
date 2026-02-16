@@ -14,7 +14,7 @@ export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Miscellaneous Items | PubParts.xyz"
+            title="Misc Parts | ESK8CAD.COM"
             description="Open source or otherwise aftermarket parts for no particular board platform" />
     </>
 )
@@ -26,7 +26,7 @@ const Page: React.FC<PageProps> = () => {
                 <SiteNavbar />
 
                 <h1 className="flex-center">
-                    Miscellaneous Items
+                    Misc Parts
                 </h1>
             </header>
 
@@ -36,21 +36,21 @@ const Page: React.FC<PageProps> = () => {
                     <ItemListSearchbar partList={miscParts} />
 
                     {/* Search results headers */}
-                    <h2 id="itemListHeader" style={{display: "block"}}>Items</h2>
-                    <h2 id="noResultsText" style={{display: "none", minHeight: "200px"}}>No results.</h2>
+                    <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
+                    <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
 
                     <Row>
                         {/* List parts */}
                         {!!miscParts.length &&
                             miscParts.map(ItemCard)
                         }
-                        
+
                         {/* Copyright card */}
                         <CopyrightCard />
                     </Row>
                 </Container>
             </main>
-                
+
             <SiteFooter />
         </>
     )

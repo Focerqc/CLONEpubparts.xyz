@@ -13,7 +13,7 @@ export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Spreadsheets | Resources | PubParts.xyz"
+            title="Spreadsheets | Resources | ESK8CAD.COM"
             description="Various resources for VESC builders" />
     </>
 )

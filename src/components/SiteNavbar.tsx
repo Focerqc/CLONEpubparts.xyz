@@ -61,14 +61,25 @@ export default ({ isHomepage }: NavbarProps) => {
                     <Nav variant="underline" justify>
                         <Nav.Link href="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/submit">Submit</Nav.Link>
-                        <NavDropdown title="Parts" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-parts-dropdown">
-                            <NavDropdown.Item href="/parts/mboards" target="_self">MBoards</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/meepo" target="_self">Meepo</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/radium" target="_self">Radium Performance</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/lacroix" target="_self">Lacroix</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/trampa" target="_self">Trampa</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/bioboards" target="_self">Bioboards</NavDropdown.Item>
-                            <NavDropdown.Item href="/parts/other" target="_self">Other</NavDropdown.Item>
+                        <NavDropdown title="Board Platforms" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-parts-dropdown">
+                            <NavDropdown.Item as={Link} to="/parts/street">Street board DIY/Generic</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/offroad">Off-Road board DIY/Generic</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/misc">Misc</NavDropdown.Item>
+                            <NavDropdown.Divider />
+                            <NavDropdown.Item as={Link} to="/parts/backfire">Backfire</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/bioboards">Bioboards</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/electronics">VESC Electronics</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/evolve">Evolve</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/exway">Exway</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/hoyt">Hoyt St</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/lacroix">Lacroix</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/mboards">MBoards</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/meepo">Meepo</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/onsra">Onsra</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/radium">Radium Performance</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/trampa">Trampa</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/tynee">Tynee</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/wowgo">Wowgo</NavDropdown.Item>
                         </NavDropdown>
                         <NavDropdown title="Resources" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-resources-dropdown">
                             <NavDropdown.Item href="/resources/applications" target="_self">Applications</NavDropdown.Item>

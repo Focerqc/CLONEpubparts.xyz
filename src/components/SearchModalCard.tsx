@@ -14,14 +14,8 @@ export default (item: ItemData | ResourceData, index: number) => {
     const getLinks = (d: string) => {
         let url = ""
 
-        if (d.includes("Floatwheel")) url = "/parts/floatwheel"
-        else if (d.includes("GT/GT-S")) url = "/parts/gt"
-        else if (d.includes("Miscellaneous Items")) url = "/parts/misc"
-        else if (d.includes("Pint/X/S")) url = "/parts/pint"
-        else if (d.includes("VESC Electronics")) url = "/parts/electronics"
-        else if (d.includes("XR Classic")) url = "/parts/xrclassic"
-        else if (d.includes("XR")) url = "/parts/xr"
-        else if (d.includes("App")) url = "/resources/applications"
+        // Resources
+        if (d.includes("App")) url = "/resources/applications"
         else if (d.includes("Github Repository")) url = "/resources/repositories"
         else if (d.includes("Spreadsheet")) url = "/resources/spreadsheets"
         else if (d.includes("Vendor")) url = "/resources/vendors"
@@ -29,13 +23,41 @@ export default (item: ItemData | ResourceData, index: number) => {
         else if (d.includes("Website")) url = "/resources/websites"
         else if (d.includes("Written Guide")) url = "/resources/writtenguides"
 
-        return url + `?search=${encodeURIComponent(item.title)}`
+        // Platforms (Mappings)
+        else if (d === "Street (DIY/Generic)") url = "/parts/street"
+        else if (d === "Off-Road (DIY/Generic)") url = "/parts/offroad"
+        else if (d === "Misc") url = "/parts/misc"
+        else if (d === "3D Servisas") url = "/parts/3dservisas"
+        else if (d === "Acedeck") url = "/parts/acedeck"
+        else if (d === "Apex Boards") url = "/parts/apex"
+        else if (d === "Backfire") url = "/parts/backfire"
+        else if (d === "Bioboards") url = "/parts/bioboards"
+        else if (d === "Boardnamics") url = "/parts/boardnamics"
+        else if (d === "Defiant Board Society") url = "/parts/defiant"
+        else if (d === "Evolve") url = "/parts/evolve"
+        else if (d === "Exway") url = "/parts/exway"
+        else if (d === "Fluxmotion") url = "/parts/fluxmotion"
+        else if (d === "Hoyt St") url = "/parts/hoyt"
+        else if (d === "Lacroix Boards") url = "/parts/lacroix"
+        else if (d === "Linnpower") url = "/parts/linnpower"
+        else if (d === "MBoards") url = "/parts/mboards"
+        else if (d === "MBS") url = "/parts/mbs"
+        else if (d === "Meepo") url = "/parts/meepo"
+        else if (d === "Newbee") url = "/parts/newbee"
+        else if (d === "Propel") url = "/parts/propel"
+        else if (d === "Radium Performance") url = "/parts/radium"
+        else if (d === "Stooge Raceboards") url = "/parts/stooge"
+        else if (d === "Summerboard") url = "/parts/summerboard"
+        else if (d === "Trampa Boards") url = "/parts/trampa"
+        else if (d === "Wowgo") url = "/parts/wowgo"
+
+        return url ? (url + `?search=${encodeURIComponent(item.title)}`) : "#"
     }
 
     return (
-        <div   
+        <div
             className="searchableThing"
-            style={{display: "none"}}
+            style={{ display: "none" }}
             key={`search-modal-card-${index}`}>
             {item.title} <>(</>{
                 ((item as ItemData).platform ?? (item as ResourceData).typeOfResource)
@@ -47,7 +69,7 @@ export default (item: ItemData | ResourceData, index: number) => {
                             {i}
                         </a>
                     ))
-                    .reduce((p , c) => [p, " | ", c])
+                    .reduce((p, c) => [p, " | ", c])
             }<>)</>
         </div>
     )

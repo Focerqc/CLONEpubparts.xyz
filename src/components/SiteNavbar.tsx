@@ -1,4 +1,4 @@
-import { Link } from "gatsby"
+import { Link, navigate } from "gatsby"
 import { StaticImage } from "gatsby-plugin-image"
 import React, { useState } from "react"
 import { Button, Container, Modal, Nav, Navbar, NavDropdown, Stack } from "react-bootstrap"
@@ -28,9 +28,13 @@ export default ({ isHomepage }: NavbarProps) => {
     const [showModal, setShowModal] = useState(false)
     const [isSpinning, setIsSpinning] = useState(false)
 
-    const handleLogoClick = () => {
+    const handleLogoClick = (e: React.MouseEvent) => {
+        e.preventDefault();
         setIsSpinning(true);
-        setTimeout(() => setIsSpinning(false), 600); // match animation duration
+        setTimeout(() => {
+            setIsSpinning(false);
+            navigate('/');
+        }, 600); // match animation duration
     };
 
     return (
@@ -66,23 +70,32 @@ export default ({ isHomepage }: NavbarProps) => {
                         <Nav.Link href="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/submit">Submit</Nav.Link>
                         <NavDropdown title="Board Platforms" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-parts-dropdown">
-                            <NavDropdown.Item as={Link} to="/parts/street">Street board DIY/Generic</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/parts/offroad">Off-Road board DIY/Generic</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/street">Street (DIY/Generic)</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/offroad">Off-Road (DIY/Generic)</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/misc">Misc</NavDropdown.Item>
                             <NavDropdown.Divider />
+                            <NavDropdown.Item as={Link} to="/parts/3dservisas">3D Servisas</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/acedeck">Acedeck</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/apex">Apex Boards</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/backfire">Backfire</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/bioboards">Bioboards</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/parts/electronics">VESC Electronics</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/boardnamics">Boardnamics</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/defiant">Defiant Board Society</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/evolve">Evolve</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/exway">Exway</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/fluxmotion">Fluxmotion</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/hoyt">Hoyt St</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/parts/lacroix">Lacroix</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/lacroix">Lacroix Boards</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/linnpower">Linnpower</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/mboards">MBoards</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/mbs">MBS</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/meepo">Meepo</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/parts/onsra">Onsra</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/newbee">Newbee</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/propel">Propel</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/radium">Radium Performance</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/parts/trampa">Trampa</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/parts/tynee">Tynee</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/stooge">Stooge Raceboards</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/summerboard">Summerboard</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/parts/trampa">Trampa Boards</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/parts/wowgo">Wowgo</NavDropdown.Item>
                         </NavDropdown>
                         <NavDropdown title="Resources" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-resources-dropdown">

@@ -7,22 +7,31 @@ import { Button } from "react-bootstrap"
  */
 const PartTypesLinks: React.FC = () => {
     const platforms = [
-        { label: "Street board DIY/Generic", href: "/parts/street" },
-        { label: "Off-Road board DIY/Generic", href: "/parts/offroad" },
+        { label: "Street (DIY/Generic)", href: "/parts/street" },
+        { label: "Off-Road (DIY/Generic)", href: "/parts/offroad" },
         { label: "Misc", href: "/parts/misc" },
+        { label: "3D Servisas", href: "/parts/3dservisas" },
+        { label: "Acedeck", href: "/parts/acedeck" },
+        { label: "Apex Boards", href: "/parts/apex" },
         { label: "Backfire", href: "/parts/backfire" },
         { label: "Bioboards", href: "/parts/bioboards" },
+        { label: "Boardnamics", href: "/parts/boardnamics" },
+        { label: "Defiant Board Society", href: "/parts/defiant" },
         { label: "Evolve", href: "/parts/evolve" },
         { label: "Exway", href: "/parts/exway" },
+        { label: "Fluxmotion", href: "/parts/fluxmotion" },
         { label: "Hoyt St", href: "/parts/hoyt" },
-        { label: "Lacroix", href: "/parts/lacroix" },
+        { label: "Lacroix Boards", href: "/parts/lacroix" },
+        { label: "Linnpower", href: "/parts/linnpower" },
         { label: "MBoards", href: "/parts/mboards" },
+        { label: "MBS", href: "/parts/mbs" },
         { label: "Meepo", href: "/parts/meepo" },
-        { label: "Onsra", href: "/parts/onsra" },
+        { label: "Newbee", href: "/parts/newbee" },
+        { label: "Propel", href: "/parts/propel" },
         { label: "Radium Performance", href: "/parts/radium" },
-        { label: "Trampa", href: "/parts/trampa" },
-        { label: "Tynee", href: "/parts/tynee" },
-        { label: "VESC Electronics", href: "/parts/electronics" },
+        { label: "Stooge Raceboards", href: "/parts/stooge" },
+        { label: "Summerboard", href: "/parts/summerboard" },
+        { label: "Trampa Boards", href: "/parts/trampa" },
         { label: "Wowgo", href: "/parts/wowgo" }
     ]
 

@@ -49,7 +49,29 @@ const SubmitPage: React.FC<PageProps> = () => {
         "Street (DIY/Generic)",
         "Off-Road (DIY/Generic)",
         "Misc",
-        "Backfire", "Bioboards", "Evolve", "Exway", "Hoyt St", "Lacroix", "MBoards", "Meepo", "Onsra", "Radium Performance", "Trampa", "Tynee", "VESC Electronics", "Wowgo"
+        "3D Servisas",
+        "Acedeck",
+        "Apex Boards",
+        "Backfire",
+        "Bioboards",
+        "Boardnamics",
+        "Defiant Board Society",
+        "Evolve",
+        "Exway",
+        "Fluxmotion",
+        "Hoyt St",
+        "Lacroix Boards",
+        "Linnpower",
+        "MBoards",
+        "MBS",
+        "Meepo",
+        "Newbee",
+        "Propel",
+        "Radium Performance",
+        "Stooge Raceboards",
+        "Summerboard",
+        "Trampa Boards",
+        "Wowgo"
     ]
     const TAGS = [
         "Anti-sink plate", "Battery", "Battery building parts", "Bearing", "BMS", "Bushing", "Charge Port", "Charger case",
@@ -60,12 +82,8 @@ const SubmitPage: React.FC<PageProps> = () => {
     ]
     const FAB_METHODS = ["3d Printed", "CNC", "Molded", "Other"]
 
-    const toggleArray = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {
-        setPartData(prev => {
-            const arr = (prev as any)[field] as string[];
-            const next = arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
-            return { ...prev, [field]: next };
-        });
+    const setSingleValue = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {
+        setPartData(prev => ({ ...prev, [field]: [val] }));
     }
 
     /**
@@ -140,6 +158,21 @@ const SubmitPage: React.FC<PageProps> = () => {
 
     const handleFinalSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        // Validation for required fields
+        if (partData.platform.length === 0) {
+            setError("Please select a Board Platform.")
+            return
+        }
+        if (partData.typeOfPart.length === 0) {
+            setError("Please select a Technical Tag (Part Type).")
+            return
+        }
+        if (partData.fabricationMethod.length === 0) {
+            setError("Please select a Fabrication Method.")
+            return
+        }
+
         setIsLoading(true)
         try {
             const res = await fetch('/api/submit', {
@@ -213,7 +246,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         <Row className="gx-5">
                                             <Col md={7}>
                                                 <Form.Group className="mb-4">
-                                                    <Form.Label className="small uppercase fw-bold opacity-75 text-light">Part Title</Form.Label>
+                                                    <Form.Label className="small uppercase fw-bold opacity-75 text-light">Part Title <span className="text-danger">*</span></Form.Label>
                                                     <Form.Control
                                                         className="bg-secondary text-white border-secondary p-3 shadow-sm"
                                                         value={partData.title}
@@ -252,9 +285,9 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         <hr className="my-5 border-secondary opacity-25" />
 
                                         <div className="mb-5">
-                                            <div className="d-flex gap-2">
-                                                <Button variant={activeTab === 'platform' ? 'primary' : 'outline-light'} className="py-2 px-4 fw-bold shadow-sm" onClick={() => setActiveTab('platform')}>Board Platforms</Button>
-                                                <Button variant={activeTab === 'tag' ? 'primary' : 'outline-light'} className="py-2 px-4 fw-bold shadow-sm" onClick={() => setActiveTab('tag')}>Technical Tags</Button>
+                                            <div className="d-flex gap-2 mb-2">
+                                                <Button variant={activeTab === 'platform' ? 'primary' : 'outline-light'} className="py-2 px-4 fw-bold shadow-sm" onClick={() => setActiveTab('platform')}>Board Platform <span className="text-danger">*</span></Button>
+                                                <Button variant={activeTab === 'tag' ? 'primary' : 'outline-light'} className="py-2 px-4 fw-bold shadow-sm" onClick={() => setActiveTab('tag')}>Technical Tag <span className="text-danger">*</span></Button>
                                             </div>
                                             <div className={`mt-3 p-4 rounded bg-secondary border border-secondary shadow-sm ${!activeTab ? 'd-none' : ''}`}>
                                                 <div className="d-flex flex-wrap gap-2">
@@ -266,7 +299,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                                 bg={isSel ? "primary" : "none"}
                                                                 className={`p-2 border border-light cursor-pointer shadow-sm ${isSel ? 'text-white' : 'text-light opacity-50'}`}
                                                                 style={{ cursor: 'pointer', transition: 'all 0.1s ease' }}
-                                                                onClick={() => toggleArray(activeTab === 'platform' ? 'platform' : 'typeOfPart', opt)}
+                                                                onClick={() => setSingleValue(activeTab === 'platform' ? 'platform' : 'typeOfPart', opt)}
                                                             >
                                                                 {opt} {isSel && "✓"}
                                                             </Badge>
@@ -282,7 +315,7 @@ const SubmitPage: React.FC<PageProps> = () => {
 
                                         <Row className="mb-4">
                                             <Col md={6}>
-                                                <Form.Label className="small uppercase fw-bold opacity-75 text-light">Fab Methods</Form.Label>
+                                                <Form.Label className="small uppercase fw-bold opacity-75 text-light">Fab Method <span className="text-danger">*</span></Form.Label>
                                                 <div className="d-flex flex-wrap gap-3 p-3 bg-secondary rounded border border-secondary shadow-inner">
                                                     {FAB_METHODS.map(m => (
                                                         <Button
@@ -290,7 +323,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                             size="sm"
                                                             variant={partData.fabricationMethod.includes(m) ? "primary" : "outline-light"}
                                                             className={`fw-bold border-1 ${!partData.fabricationMethod.includes(m) ? 'opacity-50' : ''}`}
-                                                            onClick={() => toggleArray('fabricationMethod', m)}
+                                                            onClick={() => setSingleValue('fabricationMethod', m)}
                                                         >
                                                             {m}
                                                         </Button>

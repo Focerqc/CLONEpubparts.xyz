@@ -8,14 +8,14 @@ import SiteFooter from "../../components/SiteFooter"
 import SiteMetaData from "../../components/SiteMetaData"
 import SiteNavbar from "../../components/SiteNavbar"
 import "../../scss/pages/items.scss"
-import { onsraParts } from "../../util/parts"
+import { newbeeParts } from "../../util/parts"
 
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Onsra Parts | ESK8CAD.COM"
-            description="Open source or otherwise aftermarket parts for the Onsra platform" />
+            title="Newbee Parts | ESK8CAD.COM"
+            description="Open source or otherwise aftermarket parts for the Newbee platform" />
     </>
 )
 
@@ -24,27 +24,21 @@ const Page: React.FC<PageProps> = () => {
         <>
             <header>
                 <SiteNavbar />
-
-                <h1 className="flex-center">
-                    Onsra Parts
-                </h1>
+                <h1 className="flex-center">Newbee Parts</h1>
             </header>
-
             <main className="page-items">
                 <Container>
-                    <ItemListSearchbar partList={onsraParts} />
+                    <ItemListSearchbar partList={newbeeParts} />
                     <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
                     <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
                     <Row>
-                        {!!onsraParts.length && onsraParts.map(ItemCard)}
+                        {!!newbeeParts.length && newbeeParts.map(ItemCard)}
                         <CopyrightCard />
                     </Row>
                 </Container>
             </main>
-
             <SiteFooter />
         </>
     )
 }
-
 export default Page

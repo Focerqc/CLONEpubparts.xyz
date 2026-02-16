@@ -8,14 +8,14 @@ import SiteFooter from "../../components/SiteFooter"
 import SiteMetaData from "../../components/SiteMetaData"
 import SiteNavbar from "../../components/SiteNavbar"
 import "../../scss/pages/items.scss"
-import { vescElectronicsParts } from "../../util/parts"
+import { propelParts } from "../../util/parts"
 
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="VESC Electronics | ESK8CAD.COM"
-            description="Open source or otherwise aftermarket electronics for no particular board platform" />
+            title="Propel Parts | ESK8CAD.COM"
+            description="Open source or otherwise aftermarket parts for the Propel platform" />
     </>
 )
 
@@ -24,36 +24,21 @@ const Page: React.FC<PageProps> = () => {
         <>
             <header>
                 <SiteNavbar />
-
-                <h1 className="flex-center">
-                    VESC Electronics
-                </h1>
+                <h1 className="flex-center">Propel Parts</h1>
             </header>
-
             <main className="page-items">
                 <Container>
-                    {/* Search area */}
-                    <ItemListSearchbar partList={vescElectronicsParts} />
-
-                    {/* Search results headers */}
-                    <h2 id="itemListHeader" style={{display: "block"}}>Items</h2>
-                    <h2 id="noResultsText" style={{display: "none", minHeight: "200px"}}>No results.</h2>
-
+                    <ItemListSearchbar partList={propelParts} />
+                    <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
+                    <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
                     <Row>
-                        {/* List parts */}
-                        {!!vescElectronicsParts.length &&
-                            vescElectronicsParts.map(ItemCard)
-                        }
-                        
-                        {/* Copyright card */}
+                        {!!propelParts.length && propelParts.map(ItemCard)}
                         <CopyrightCard />
                     </Row>
                 </Container>
             </main>
-                
             <SiteFooter />
         </>
     )
 }
-
 export default Page

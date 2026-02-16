@@ -25,20 +25,29 @@ const allParts = [
     { title: "placeholder_Street (DIY/Generic)", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Street (DIY/Generic)"] },
     { title: "placeholder_Off-Road (DIY/Generic)", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Off-Road (DIY/Generic)"] },
     { title: "placeholder_Misc", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
-    { title: "placeholder_VESC Electronics", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["VESC Electronics"] },
-    { title: "placeholder_MBoards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["MBoards"] },
-    { title: "placeholder_Meepo", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Meepo"] },
-    { title: "placeholder_Radium Performance", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Radium Performance"] },
-    { title: "placeholder_Bioboards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Bioboards"] },
-    { title: "placeholder_Hoyt St", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Hoyt St"] },
-    { title: "placeholder_Lacroix", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Lacroix"] },
-    { title: "placeholder_Trampa", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Trampa"] },
-    { title: "placeholder_Evolve", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Evolve"] },
+    { title: "placeholder_3D Servisas", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["3D Servisas"] },
+    { title: "placeholder_Acedeck", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Acedeck"] },
+    { title: "placeholder_Apex Boards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Apex Boards"] },
     { title: "placeholder_Backfire", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Backfire"] },
+    { title: "placeholder_Bioboards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Bioboards"] },
+    { title: "placeholder_Boardnamics", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Boardnamics"] },
+    { title: "placeholder_Defiant Board Society", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Defiant Board Society"] },
+    { title: "placeholder_Evolve", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Evolve"] },
     { title: "placeholder_Exway", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Exway"] },
-    { title: "placeholder_Onsra", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Onsra"] },
+    { title: "placeholder_Fluxmotion", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Fluxmotion"] },
+    { title: "placeholder_Hoyt St", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Hoyt St"] },
+    { title: "placeholder_Lacroix Boards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Lacroix Boards"] },
+    { title: "placeholder_Linnpower", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Linnpower"] },
+    { title: "placeholder_MBoards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["MBoards"] },
+    { title: "placeholder_MBS", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["MBS"] },
+    { title: "placeholder_Meepo", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Meepo"] },
+    { title: "placeholder_Newbee", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Newbee"] },
+    { title: "placeholder_Propel", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Propel"] },
+    { title: "placeholder_Radium Performance", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Radium Performance"] },
+    { title: "placeholder_Stooge Raceboards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Stooge Raceboards"] },
+    { title: "placeholder_Summerboard", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Summerboard"] },
+    { title: "placeholder_Trampa Boards", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Trampa Boards"] },
     { title: "placeholder_Wowgo", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Wowgo"] },
-    { title: "placeholder_Tynee", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Tynee"] },
 
     // Tag Placeholders
     { title: "placeholder_Truck", fabricationMethod: ["Other"], typeOfPart: ["Truck"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
@@ -96,23 +105,32 @@ const tag = (type: PartType) => {
 export default allParts.sort((a, b) => a.title.localeCompare(b.title))
 
 // Platform Exports
-export const mboardsParts = platform("MBoards")
-export const meepoParts = platform("Meepo")
-export const radiumParts = platform("Radium Performance")
-export const bioboardsParts = platform("Bioboards")
-export const hoytParts = platform("Hoyt St")
-export const lacroixParts = platform("Lacroix")
-export const trampaParts = platform("Trampa")
-export const evolveParts = platform("Evolve")
-export const backfireParts = platform("Backfire")
-export const exwayParts = platform("Exway")
-export const onsraParts = platform("Onsra")
-export const wowgoParts = platform("Wowgo")
-export const tyneeParts = platform("Tynee")
-export const vescElectronicsParts = platform("VESC Electronics")
 export const streetParts = platform("Street (DIY/Generic)")
 export const offRoadParts = platform("Off-Road (DIY/Generic)")
 export const miscParts = platform("Misc")
+export const servisasParts = platform("3D Servisas")
+export const acedeckParts = platform("Acedeck")
+export const apexParts = platform("Apex Boards")
+export const backfireParts = platform("Backfire")
+export const bioboardsParts = platform("Bioboards")
+export const boardnamicsParts = platform("Boardnamics")
+export const defiantParts = platform("Defiant Board Society")
+export const evolveParts = platform("Evolve")
+export const exwayParts = platform("Exway")
+export const fluxmotionParts = platform("Fluxmotion")
+export const hoytParts = platform("Hoyt St")
+export const lacroixParts = platform("Lacroix Boards")
+export const linnpowerParts = platform("Linnpower")
+export const mboardsParts = platform("MBoards")
+export const mbsParts = platform("MBS")
+export const meepoParts = platform("Meepo")
+export const newbeeParts = platform("Newbee")
+export const propelParts = platform("Propel")
+export const radiumParts = platform("Radium Performance")
+export const stoogeParts = platform("Stooge Raceboards")
+export const summerboardParts = platform("Summerboard")
+export const trampaParts = platform("Trampa Boards")
+export const wowgoParts = platform("Wowgo")
 
 // Tag Exports
 export const truckParts = tag("Truck")

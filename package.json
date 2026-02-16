@@ -13,9 +13,9 @@
         "url": "https://github.com/Jared-Is-Coding/pubparts.xyz/issues"
     },
     "scripts": {
-        "develop": "gatsby develop",
-        "start": "gatsby develop",
-        "build": "gatsby build",
+        "develop": "node --max-old-space-size=4096 node_modules/gatsby/dist/bin/gatsby develop",
+        "start": "node --max-old-space-size=4096 node_modules/gatsby/dist/bin/gatsby develop",
+        "build": "node --max-old-space-size=4096 node_modules/gatsby/dist/bin/gatsby build",
         "serve": "gatsby serve",
         "clean": "gatsby clean",
         "typecheck": "tsc --noEmit"

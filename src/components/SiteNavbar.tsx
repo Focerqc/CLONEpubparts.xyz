@@ -42,7 +42,13 @@ export default ({ isHomepage }: NavbarProps) => {
             <Container>
                 <style dangerouslySetInnerHTML={{
                     __html: `
-                    .dropdown-menu {
+                    @media (max-width: 991px) {
+                        .navbar-collapse {
+                            max-height: 80vh;
+                            overflow-y: auto;
+                        }
+                    }
+                    .dropdown-menu.show {
                         max-height: 65vh !important;
                         overflow-y: auto !important;
                         overflow-x: hidden !important;
@@ -51,10 +57,20 @@ export default ({ isHomepage }: NavbarProps) => {
                         scrollbar-width: thin;
                         scrollbar-color: #0dcaf0 #121417;
                     }
+                    /* Reset for hidden state to allow Bootstrap/custom transitions to work */
+                    .dropdown-menu:not(.show) {
+                        max-height: 0 !important;
+                        border: 0 !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        display: block !important; 
+                        overflow: hidden !important;
+                    }
                     .dropdown-item {
                         padding: 0.75rem 1.5rem !important;
                         font-size: 1rem !important;
                         transition: all 0.2s ease;
+                        color: #adb5bd; /* Ensure text is visible */
                     }
                     .dropdown-item:hover {
                         background-color: #121417 !important;
@@ -143,7 +159,7 @@ export default ({ isHomepage }: NavbarProps) => {
                             <NavDropdown.Item href="/resources/websites" target="_self">Websites</NavDropdown.Item>
                             <NavDropdown.Item href="/resources/writtenguides" target="_self">Written Guides</NavDropdown.Item>
                         </NavDropdown>
-                        <NavDropdown title="Submit Changes" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-contribute-dropdown">
+                        <NavDropdown title="Get in contact" renderMenuOnMount={true} focusFirstItemOnShow="keyboard" id="nav-contribute-dropdown">
                             <NavDropdown.Item href={DiscordInvite} target="_blank">1. Join Vescify Discord</NavDropdown.Item>
                             <NavDropdown.Item href={DiscordThread} target="_blank">2. Post in Thread</NavDropdown.Item>
                         </NavDropdown>

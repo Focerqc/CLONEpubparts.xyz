@@ -195,7 +195,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             <Form.Control
                                                 type="url"
                                                 placeholder="Paste Printables or Thingiverse URL here"
-                                                className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                                className="input-contrast text-white border-secondary p-3 shadow-sm"
                                                 value={url}
                                                 onChange={e => setUrl(e.target.value)}
                                                 required
@@ -223,7 +223,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 <Form.Group className="mb-4">
                                                     <Form.Label className="small uppercase fw-bold opacity-75 text-light">Part Title <span className="text-danger">*</span></Form.Label>
                                                     <Form.Control
-                                                        className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                                        className="input-contrast text-white border-secondary p-3 shadow-sm"
                                                         value={partData.title}
                                                         onChange={e => setPartData({ ...partData, title: e.target.value })}
                                                         required
@@ -233,7 +233,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 <Form.Group className="mb-4">
                                                     <Form.Label className="small uppercase fw-bold opacity-75 text-light">Image Source (Direct Link)</Form.Label>
                                                     <Form.Control
-                                                        className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                                        className="input-contrast text-white border-secondary p-3 shadow-sm"
                                                         value={partData.imageSrc}
                                                         onChange={e => setPartData({ ...partData, imageSrc: e.target.value })}
                                                         placeholder="https://..."
@@ -308,7 +308,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             <Col md={6}>
                                                 <Form.Label className="small uppercase fw-bold opacity-75 text-light">Mirror Link (Optional)</Form.Label>
                                                 <Form.Control
-                                                    className="bg-secondary text-white border-secondary p-3 shadow-sm"
+                                                    className="input-contrast text-white border-secondary p-3 shadow-sm"
                                                     value={partData.dropboxUrl}
                                                     onChange={e => setPartData({ ...partData, dropboxUrl: e.target.value })}
                                                     placeholder="Direct file repository link"
@@ -372,6 +372,16 @@ const SubmitPage: React.FC<PageProps> = () => {
                 __html: `
                 .bg-secondary { background-color: #121417 !important; }
                 .border-secondary { border-color: #24282d !important; }
+                .input-contrast { 
+                    background-color: #2b3035 !important; 
+                    border-color: #495057 !important; 
+                    color: #fff !important;
+                }
+                .input-contrast:focus {
+                    background-color: #2b3035 !important;
+                    border-color: #8bb9fe !important;
+                    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+                }
                 .shadow-inner { box-shadow: inset 0 2px 8px rgba(0,0,0,0.7); }
                 .cursor-pointer { cursor: pointer; }
                 .uppercase { text-transform: uppercase; }

@@ -49,7 +49,7 @@ export default ({ isHomepage }: NavbarProps) => {
                     </span>
                 </Navbar.Brand>
 
-                <Nav.Link as={Link} to="/fosterqc" className="ms-md-2 d-none d-md-inline-block opacity-75 hover-opacity-100" style={{ fontSize: '0.9rem' }}>
+                <Nav.Link as={Link} to="/fosterqc" className="ms-2 opacity-75 hover-opacity-100 me-auto" style={{ fontSize: '0.9rem' }}>
                     Fosterqc
                 </Nav.Link>
 

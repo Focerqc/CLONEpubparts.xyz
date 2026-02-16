@@ -8,14 +8,14 @@ import SiteFooter from "../../../components/SiteFooter"
 import SiteMetaData from "../../../components/SiteMetaData"
 import SiteNavbar from "../../../components/SiteNavbar"
 import "../../../scss/pages/items.scss"
-import { bracketParts } from "../../../util/parts"
+import { fuseHolderParts } from "../../../util/parts"
 
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Bracket Parts | ESK8CAD.COM"
-            description="Open source Bracket components for electric skateboards" />
+            title="Fuse holder Parts | ESK8CAD.COM"
+            description="Open source Fuse holder components for electric skateboards" />
     </>
 )
 
@@ -25,16 +25,16 @@ const Page: React.FC<PageProps> = () => {
             <header>
                 <SiteNavbar />
                 <h1 className="flex-center">
-                    Bracket Parts
+                    Fuse holder Parts
                 </h1>
             </header>
             <main className="page-items">
                 <Container>
-                    <ItemListSearchbar partList={bracketParts} />
+                    <ItemListSearchbar partList={fuseHolderParts} />
                     <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
                     <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
                     <Row>
-                        {!!bracketParts.length && bracketParts.map(ItemCard)}
+                        {!!fuseHolderParts.length && fuseHolderParts.map(ItemCard)}
                         <CopyrightCard />
                     </Row>
                 </Container>

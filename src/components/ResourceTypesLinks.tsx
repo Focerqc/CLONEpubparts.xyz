@@ -14,10 +14,17 @@ export default () => (
         ].map(resource => (
             <Button
                 key={resource.href}
-                variant="outline-info"
+                variant="outline"
                 href={resource.href}
                 className="px-4 py-2"
-                style={{ fontSize: '0.9rem', minWidth: 'fit-content' }}
+                style={{
+                    fontSize: '0.9rem',
+                    minWidth: 'fit-content',
+                    color: '#800000',
+                    borderColor: '#800000',
+                    borderWidth: '2px',
+                    fontWeight: 'bold'
+                }}
             >
                 {resource.label}
             </Button>

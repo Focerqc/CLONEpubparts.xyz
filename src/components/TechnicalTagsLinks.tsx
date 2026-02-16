@@ -7,9 +7,11 @@ import { Button } from "react-bootstrap"
  */
 const TechnicalTagsLinks: React.FC = () => {
     const tags = [
-        "Deck", "Truck", "Motor", "Enclosure", "Adapter", "Battery Box",
-        "Mount", "Hardware", "Remote", "BMS", "ESC", "Drivetrain",
-        "Wheel", "Pulley", "Bearing", "Gasket", "Bracket", "Miscellaneous"
+        "Anti-sink plate", "Battery", "Battery building parts", "Bearing", "BMS", "Bushing", "Charge Port", "Charger case",
+        "Complete board", "Connector", "Cover", "Deck", "Drill hole Jig", "Enclosure", "ESC", "Fender", "Foothold / Bindings",
+        "Fuse holder", "Gland", "Guard / Bumper", "Headlight", "Heatsink", "Idler", "Motor", "Motor Mount", "Mount",
+        "Pulley", "Remote", "Riser", "Shocks / Damper", "Sprocket", "Stand", "Thumbwheel", "Tire", "Truck", "Wheel",
+        "Wheel Hub", "Miscellaneous"
     ]
 
     return (

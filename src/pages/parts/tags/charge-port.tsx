@@ -8,14 +8,14 @@ import SiteFooter from "../../../components/SiteFooter"
 import SiteMetaData from "../../../components/SiteMetaData"
 import SiteNavbar from "../../../components/SiteNavbar"
 import "../../../scss/pages/items.scss"
-import { drivetrainParts } from "../../../util/parts"
+import { chargePortParts } from "../../../util/parts"
 
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Drivetrain Parts | ESK8CAD.COM"
-            description="Open source Drivetrain components for electric skateboards" />
+            title="Charge Port Parts | ESK8CAD.COM"
+            description="Open source Charge Port components for electric skateboards" />
     </>
 )
 
@@ -25,16 +25,16 @@ const Page: React.FC<PageProps> = () => {
             <header>
                 <SiteNavbar />
                 <h1 className="flex-center">
-                    Drivetrain Parts
+                    Charge Port Parts
                 </h1>
             </header>
             <main className="page-items">
                 <Container>
-                    <ItemListSearchbar partList={drivetrainParts} />
+                    <ItemListSearchbar partList={chargePortParts} />
                     <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
                     <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
                     <Row>
-                        {!!drivetrainParts.length && drivetrainParts.map(ItemCard)}
+                        {!!chargePortParts.length && chargePortParts.map(ItemCard)}
                         <CopyrightCard />
                     </Row>
                 </Container>

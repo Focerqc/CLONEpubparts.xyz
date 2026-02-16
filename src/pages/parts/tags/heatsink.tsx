@@ -8,14 +8,14 @@ import SiteFooter from "../../../components/SiteFooter"
 import SiteMetaData from "../../../components/SiteMetaData"
 import SiteNavbar from "../../../components/SiteNavbar"
 import "../../../scss/pages/items.scss"
-import { batteryBoxParts } from "../../../util/parts"
+import { heatsinkParts } from "../../../util/parts"
 
 export const Head: HeadFC = () => (
     <>
         <html lang="en" />
         <SiteMetaData
-            title="Battery Box Parts | ESK8CAD.COM"
-            description="Open source Battery Box components for electric skateboards" />
+            title="Heatsink Parts | ESK8CAD.COM"
+            description="Open source Heatsink components for electric skateboards" />
     </>
 )
 
@@ -25,16 +25,16 @@ const Page: React.FC<PageProps> = () => {
             <header>
                 <SiteNavbar />
                 <h1 className="flex-center">
-                    Battery Box Parts
+                    Heatsink Parts
                 </h1>
             </header>
             <main className="page-items">
                 <Container>
-                    <ItemListSearchbar partList={batteryBoxParts} />
+                    <ItemListSearchbar partList={heatsinkParts} />
                     <h2 id="itemListHeader" style={{ display: "block" }}>Items</h2>
                     <h2 id="noResultsText" style={{ display: "none", minHeight: "200px" }}>No results.</h2>
                     <Row>
-                        {!!batteryBoxParts.length && batteryBoxParts.map(ItemCard)}
+                        {!!heatsinkParts.length && heatsinkParts.map(ItemCard)}
                         <CopyrightCard />
                     </Row>
                 </Container>

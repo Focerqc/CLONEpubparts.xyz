@@ -58,7 +58,7 @@ const Page: React.FC<PageProps> = () => {
 
                     {/* SECTION: RESOURCES */}
                     <div className="mb-5">
-                        <h2 className="h4 fw-bold uppercase letter-spacing-1 mb-4 border-bottom border-secondary pb-2">Community Resources</h2>
+                        <h2 className="h4 fw-bold uppercase letter-spacing-1 mb-4 border-bottom border-secondary pb-2" style={{ color: '#800000' }}>Community Resources</h2>
                         <ClientOnly fallback={<div className="py-4 text-center opacity-25">Loading resources...</div>}>
                             <div className="grid-fix-container">
                                 <ResourceTypesLinks />

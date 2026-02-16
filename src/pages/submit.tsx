@@ -52,12 +52,12 @@ const SubmitPage: React.FC<PageProps> = () => {
         "Backfire", "Bioboards", "Evolve", "Exway", "Hoyt St", "Lacroix", "MBoards", "Meepo", "Onsra", "Radium Performance", "Trampa", "Tynee", "VESC Electronics", "Wowgo"
     ]
     const TAGS = [
-        "Adapter", "Axle Block", "Battery Assembly", "Battery Box", "Bearing Cover", "BMS", "Bracket", "Breakout Board", "Bumper",
-        "Connector Cover", "Controller Box", "Controller", "Fender", "Fender Attachment", "Fender Delete", "Footpad",
-        "Footpad Attachment", "Gasket", "Hall Sensor", "LED", "Miscellaneous", "Motor", "Motor Cover", "Plug", "Port Cover",
-        "Rail Attachment", "Rails", "Remote", "Rim Saver", "Stand", "Tire", "Tool", "Deck", "Truck", "Enclosure",
-        "Mount", "Drivetrain", "Wheel", "Pulley", "Bearing", "ESC", "Hardware"
-    ].sort()
+        "Anti-sink plate", "Battery", "Battery building parts", "Bearing", "BMS", "Bushing", "Charge Port", "Charger case",
+        "Complete board", "Connector", "Cover", "Deck", "Drill hole Jig", "Enclosure", "ESC", "Fender", "Foothold / Bindings",
+        "Fuse holder", "Gland", "Guard / Bumper", "Headlight", "Heatsink", "Idler", "Motor", "Motor Mount", "Mount",
+        "Pulley", "Remote", "Riser", "Shocks / Damper", "Sprocket", "Stand", "Thumbwheel", "Tire", "Truck", "Wheel",
+        "Wheel Hub"
+    ]
     const FAB_METHODS = ["3d Printed", "CNC", "Molded", "Other"]
 
     const toggleArray = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {

@@ -49,6 +49,10 @@ export default ({ isHomepage }: NavbarProps) => {
                     </span>
                 </Navbar.Brand>
 
+                <Nav.Link as={Link} to="/fosterqc" className="ms-md-2 d-none d-md-inline-block opacity-75 hover-opacity-100" style={{ fontSize: '0.9rem' }}>
+                    Fosterqc
+                </Nav.Link>
+
                 <Stack direction="horizontal" gap={3}>
                     {/* Mobile Search Button */}
                     <Nav.Link className="d-md-block d-lg-none navbar-toggler" onClick={() => setShowModal(true)} aria-label="Sitewide search modal trigger"><FaMagnifyingGlass style={{ height: "1rem", width: "1rem" }} /></Nav.Link>

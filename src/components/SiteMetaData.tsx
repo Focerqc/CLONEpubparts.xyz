@@ -20,8 +20,8 @@ export default ({ title, description, image }: MetaDataProps) => {
 
             {/* Site icon */}
             <meta property="og:image" content={image || siteUrl + defaultImage}></meta>
-            <link rel="icon" href="/favicon.ico" />
-            <link rel="shortcut icon" href="/favicon.ico" />
+            <link rel="icon" href="/favicon.ico?v=2" />
+            <link rel="shortcut icon" href="/favicon.ico?v=2" />
 
             {/* Site description */}
             <meta name="description" content={description || defaultDescription} />

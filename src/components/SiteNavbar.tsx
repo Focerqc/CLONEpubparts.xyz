@@ -40,6 +40,42 @@ export default ({ isHomepage }: NavbarProps) => {
     return (
         <Navbar fixed="top" expand="lg" data-bs-theme="dark">
             <Container>
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    .dropdown-menu {
+                        max-height: 65vh !important;
+                        overflow-y: auto !important;
+                        overflow-x: hidden !important;
+                        border: 1px solid #24282d !important;
+                        background-color: #090a0b !important;
+                        scrollbar-width: thin;
+                        scrollbar-color: #0dcaf0 #121417;
+                    }
+                    .dropdown-item {
+                        padding: 0.75rem 1.5rem !important;
+                        font-size: 1rem !important;
+                        transition: all 0.2s ease;
+                    }
+                    .dropdown-item:hover {
+                        background-color: #121417 !important;
+                        color: #0dcaf0 !important;
+                        padding-left: 1.75rem !important;
+                    }
+                    .dropdown-menu::-webkit-scrollbar {
+                        width: 8px;
+                    }
+                    .dropdown-menu::-webkit-scrollbar-track {
+                        background: #090a0b;
+                    }
+                    .dropdown-menu::-webkit-scrollbar-thumb {
+                        background-color: #24282d;
+                        border-radius: 10px;
+                        border: 2px solid #090a0b;
+                    }
+                    .dropdown-menu::-webkit-scrollbar-thumb:hover {
+                        background-color: #0dcaf0;
+                    }
+                `}} />
                 <Navbar.Brand href="/" onClick={handleLogoClick}>
                     <StaticImage
                         src="../../static/images/logo.png"

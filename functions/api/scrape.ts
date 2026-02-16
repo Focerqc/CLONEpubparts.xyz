@@ -1,4 +1,5 @@
 
+// Force deployment trigger: Updated scrape logic with Firecrawl and GraphQL fallback
 interface Env {
     FIRECRAWL_API_KEY?: string;
 }

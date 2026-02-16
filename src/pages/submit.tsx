@@ -1,6 +1,6 @@
 import { type HeadFC, type PageProps } from "gatsby"
 import React, { useState } from "react"
-import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge } from "react-bootstrap"
+import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge, Modal } from "react-bootstrap"
 import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
@@ -86,8 +86,12 @@ const SubmitPage: React.FC<PageProps> = () => {
         setPartData(prev => ({ ...prev, [field]: [val] }));
     }
 
+    const [showErrorModal, setShowErrorModal] = useState(false)
+    const [modalMessage, setModalMessage] = useState("")
+
     /**
-     * handleFetchMetadata: Direct fetch -> AllOrigins fallback.
+     * handleFetchMetadata: Calls Cloudflare Function /api/scrape
+     * Uses ZenRows + GraphQL Fallback
      */
     const handleFetchMetadata = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -96,59 +100,30 @@ const SubmitPage: React.FC<PageProps> = () => {
 
         setIsLoading(true)
         setError(null)
-        const currentAttempts: FetchAttempt[] = []
+        setAttempts([]) // Clear old debug logs
 
         try {
-            let html = ""
+            // Call our new robust scraper
+            const res = await fetch(`/api/scrape?url=${encodeURIComponent(targetUrl)}`)
+            const data = await res.json()
 
-            // Attempt 1: Direct
-            try {
-                const res = await fetch(targetUrl)
-                const text = await res.text()
-                currentAttempts.push({ proxy: "Direct", status: res.status, message: res.ok ? "Success" : "Failed", snippet: text.substring(0, 200) })
-                if (res.ok) html = text
-            } catch (err: any) {
-                currentAttempts.push({ proxy: "Direct", status: "Exception", message: err.message, snippet: "" })
+            if (!res.ok || data.success === false) {
+                throw new Error(data.error || "Scrape Failed: Site is protected. Please enter the data manually or check your API credits.")
             }
 
-            // Attempt 2: AllOrigins fallback
-            if (!html) {
-                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
-                try {
-                    const res = await fetch(proxy)
-                    const text = await res.text()
-                    currentAttempts.push({ proxy: "AllOrigins", status: res.status, message: res.ok ? "Success" : "Failed", snippet: text.substring(0, 200) })
-                    if (res.ok) html = text
-                } catch (err: any) {
-                    currentAttempts.push({ proxy: "AllOrigins", status: "Exception", message: err.message, snippet: "" })
-                }
-            }
-
-            setAttempts(currentAttempts)
-
-            if (!html) throw new Error("Metadata fetch blocked. Protection active.")
-
-            const parser = new DOMParser()
-            const doc = parser.parseFromString(html, "text/html")
-
-            const titleMeta = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || doc.title || ""
-            const cleanedTitle = titleMeta
-                .replace(/ \| Download free STL model \| Printables\.com$/i, '')
-                .replace(/ - Thingiverse$/i, '')
-                .trim()
-
-            let imgMeta = doc.querySelector('meta[property="og:image"]')?.getAttribute('content')
-                || doc.querySelector('img[src*="preview"], img[src*="model"], img[src*="hero"]')?.getAttribute('src')
-                || ""
-
-            if (imgMeta && !imgMeta.startsWith("http")) {
-                imgMeta = new URL(imgMeta, targetUrl).href
-            }
-
-            setPartData(prev => ({ ...prev, title: cleanedTitle || prev.title, imageSrc: imgMeta || prev.imageSrc }))
+            // Map response to state
+            // Expected data: { title, description, image, tags }
+            setPartData(prev => ({
+                ...prev,
+                title: data.title || prev.title,
+                imageSrc: data.image || prev.imageSrc,
+                // Optional: Map tags if they match our known lists
+                // typeOfPart: data.tags?.filter(t => TAGS.includes(t)) || prev.typeOfPart 
+            }))
 
         } catch (err: any) {
-            setError("Fetch failed. Please enter details manually.")
+            setModalMessage(err.message || "Scrape Failed: Site is protected. Please enter the data manually or check your API credits.")
+            setShowErrorModal(true)
             console.error("Scrape error:", err)
         } finally {
             setIsLoading(false)
@@ -378,6 +353,20 @@ const SubmitPage: React.FC<PageProps> = () => {
             </Container>
 
             <SiteFooter />
+
+            <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered contentClassName="bg-dark text-light border-secondary">
+                <Modal.Header closeButton closeVariant="white" className="border-secondary">
+                    <Modal.Title className="fw-bold">Scrape Failed</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p>{modalMessage}</p>
+                </Modal.Body>
+                <Modal.Footer className="border-secondary">
+                    <Button variant="outline-light" onClick={() => setShowErrorModal(false)}>
+                        Close (Manual Entry)
+                    </Button>
+                </Modal.Footer>
+            </Modal>
 
             <style dangerouslySetInnerHTML={{
                 __html: `

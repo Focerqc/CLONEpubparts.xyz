@@ -318,7 +318,7 @@ const SubmitPage: React.FC<PageProps> = () => {
 
             if (result.manualUrl) {
                 setManualUrl(result.manualUrl)
-                setWarning(result.warning)
+                setWarning(result.warning || null)
             }
 
             setIsSubmitted(true)

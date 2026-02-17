@@ -1,4 +1,7 @@
-
 name = "clonepubparts"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "public"
+
+[[kv_namespaces]]
+binding = "SUBMIT_RATE_LIMIT"
+id = "1379c7070d0c4f0ea51ee8d72fd16174"

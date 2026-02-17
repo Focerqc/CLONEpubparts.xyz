@@ -12,16 +12,30 @@ interface ScrapeResult {
     error?: string;
 }
 
+// Helper: Fetch with 8s timeout
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 8000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
+};
+
 export const onRequestGet = async (context: any) => {
     // Enable CORS
+    const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    };
+
     if (context.request.method === "OPTIONS") {
-        return new Response(null, {
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type",
-            },
-        });
+        return new Response(null, { headers: corsHeaders });
     }
 
     const { request, env } = context;
@@ -29,7 +43,7 @@ export const onRequestGet = async (context: any) => {
     const targetUrl = url.searchParams.get('url');
 
     const headers = {
-        "Access-Control-Allow-Origin": "*",
+        ...corsHeaders,
         "Content-Type": "application/json"
     };
 
@@ -39,15 +53,17 @@ export const onRequestGet = async (context: any) => {
 
     // Initialize result object
     let data: ScrapeResult = {};
+    let success = false;
+    let source = '';
 
     try {
-        // 1. Try Firecrawl (Free Tier / API)
+        // 1. Try Firecrawl (Free Tier / API) with Timeout
         if (env.FIRECRAWL_API_KEY) {
             try {
                 // Firecrawl /scrape endpoint with extract capabilities
                 const firecrawlUrl = `https://api.firecrawl.dev/v1/scrape`;
 
-                const response = await fetch(firecrawlUrl, {
+                const response = await fetchWithTimeout(firecrawlUrl, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${env.FIRECRAWL_API_KEY}`,
@@ -84,8 +100,8 @@ export const onRequestGet = async (context: any) => {
                         data.description = extracted.description;
                         data.image = extracted.image;
                         data.tags = extracted.tags;
-
-                        return new Response(JSON.stringify({ ...data, success: true, source: 'firecrawl' }), { headers });
+                        success = true;
+                        source = 'firecrawl';
                     }
                 } else {
                     console.log(`Firecrawl failed: ${response.status} ${response.statusText}`);
@@ -99,7 +115,7 @@ export const onRequestGet = async (context: any) => {
         // 2. Fallback: Printables GraphQL (Always Free, No Key Required for Public Data)
         // Check if it's a Printables URL and we have an ID
         const printablesMatch = targetUrl.match(/printables\.com\/.*model\/(\d+)/i);
-        if (printablesMatch && printablesMatch[1]) {
+        if (!success && printablesMatch && printablesMatch[1]) {
             const modelId = printablesMatch[1];
             try {
                 const query = `
@@ -117,7 +133,7 @@ export const onRequestGet = async (context: any) => {
                     }
                 `;
 
-                const gqlRes = await fetch('https://api.printables.com/graphql/', {
+                const gqlRes = await fetchWithTimeout('https://api.printables.com/graphql/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -146,8 +162,8 @@ export const onRequestGet = async (context: any) => {
                         if (print.tags && Array.isArray(print.tags)) {
                             data.tags = print.tags.map((t: any) => t.name);
                         }
-
-                        return new Response(JSON.stringify({ ...data, success: true, source: 'graphql' }), { headers });
+                        success = true;
+                        source = 'graphql';
                     }
                 }
             } catch (e) {
@@ -155,14 +171,22 @@ export const onRequestGet = async (context: any) => {
             }
         }
 
-        // If we reached here, both failed
-        return new Response(JSON.stringify({
-            error: 'Scrape Failed: Site is protected. Please enter the data manually or check your API credits.',
-            success: false
-        }), { status: 422, headers });
+        if (success) {
+            return new Response(JSON.stringify({ ...data, success: true, source }), { headers });
+        } else {
+            // Failure Response (Requirements: Use standard failure message)
+            return new Response(JSON.stringify({
+                success: false,
+                message: "Could not fetch metadata. Please fill details manually."
+            }), { status: 422, headers });
+        }
 
     } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message || 'Scrape failed', success: false }), {
+        console.error("Scrape wrapper error:", err);
+        return new Response(JSON.stringify({
+            success: false,
+            message: "Could not fetch metadata. Please fill details manually."
+        }), {
             status: 500,
             headers
         });

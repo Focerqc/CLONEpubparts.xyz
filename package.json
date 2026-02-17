@@ -37,6 +37,7 @@
         "sass": "^1.79.6"
     },
     "devDependencies": {
+        "@cloudflare/workers-types": "^4.20260214.0",
         "@types/fslightbox-react": "^1.8.0",
         "@types/node": "^20.11.19",
         "@types/react": "^18.2.55",

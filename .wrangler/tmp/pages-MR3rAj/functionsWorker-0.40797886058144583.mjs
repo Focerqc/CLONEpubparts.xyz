@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-V8QqEj/checked-fetch.js
+// ../.wrangler/tmp/bundle-Qa1hRO/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -206,26 +206,16 @@ var onRequestPost = /* @__PURE__ */ __name(async (context) => {
     const lastSub = await env.SUBMIT_RATE_LIMIT.get(clientIP);
     if (lastSub && now - parseInt(lastSub) < 6e4) {
       return new Response(JSON.stringify({
-        error: "Rate limit exceeded. Please wait 60 seconds between submissions."
-      }), {
-        status: 429,
-        headers: { "Content-Type": "application/json" }
-      });
+        error: "Rate limit exceeded. Please wait 60 seconds."
+      }), { status: 429, headers: { "Content-Type": "application/json" } });
     }
     const body = await request.json();
     const { parts, hp_field } = body;
     if (hp_field) {
-      return new Response(JSON.stringify({ success: true, message: "Accepted" }), { status: 200 });
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
     }
     if (!parts || !Array.isArray(parts) || parts.length === 0) {
-      return new Response(JSON.stringify({ error: "No parts provided for submission." }), { status: 400 });
-    }
-    for (const part of parts) {
-      if (!part.title || !part.platform?.length || !part.typeOfPart?.length || !part.externalUrl) {
-        return new Response(JSON.stringify({
-          error: `Part "${part.title || "Unknown"}" is missing required fields.`
-        }), { status: 400 });
-      }
+      return new Response(JSON.stringify({ error: "No parts provided." }), { status: 400 });
     }
     const token = env.GITHUB_TOKEN;
     const apiHeaders = {
@@ -234,28 +224,19 @@ var onRequestPost = /* @__PURE__ */ __name(async (context) => {
       "User-Agent": "Cloudflare-Pages-Function"
     };
     const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`, { headers: apiHeaders });
-    await logGitHubResponse("Get Base Ref", refRes);
-    if (!refRes.ok) throw new Error(`Failed to access upstream repository (${refRes.status}).`);
+    if (!refRes.ok) throw new Error("Failed to access upstream repository.");
     const refData = await refRes.json();
     const baseSha = refData.object.sha;
     const branchName = `bulk-add-${Date.now()}`;
-    const checkBranchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branchName}`, { headers: apiHeaders });
-    if (checkBranchRes.status !== 404) {
-      throw new Error("Temporary branch collision detected. Please try again.");
-    }
-    const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+    await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
       method: "POST",
       headers: apiHeaders,
       body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: baseSha })
     });
-    await logGitHubResponse("Create Branch", branchRes);
-    if (!branchRes.ok) throw new Error("Could not create transition branch in GitHub.");
     const contentRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${branchName}`, { headers: apiHeaders });
-    if (!contentRes.ok) throw new Error("Could not retrieve parts database for patching.");
     const contentData = await contentRes.json();
-    const base64Content = contentData.content;
     const fileSha = contentData.sha;
-    let currentContent = decodeURIComponent(escape(atob(base64Content)));
+    let currentContent = decodeURIComponent(escape(atob(contentData.content)));
     let partsToAddString = "";
     for (const part of parts) {
       const tags = [...part.typeOfPart];
@@ -272,24 +253,22 @@ var onRequestPost = /* @__PURE__ */ __name(async (context) => {
         dropboxZipLastUpdated: part.dropboxZipLastUpdated || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
         platform: part.platform
       };
-      partsToAddString += `, 
-${JSON.stringify(finalEntry, null, 2)}`;
+      partsToAddString += `,
+  ${JSON.stringify(finalEntry, null, 2)}`;
     }
     const updatedContent = currentContent.replace(/\]\s*as\s*ItemData\[\]/, `${partsToAddString}
 ] as ItemData[]`);
     const newBase64Content = btoa(unescape(encodeURIComponent(updatedContent)));
-    const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+    await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
       method: "PUT",
       headers: apiHeaders,
       body: JSON.stringify({
-        message: `Bulk add ${parts.length} parts`,
+        message: `Bulk add ${parts.length} parts via ESK8CAD`,
         content: newBase64Content,
         sha: fileSha,
         branch: branchName
       })
     });
-    await logGitHubResponse("Commit Changes", commitRes);
-    if (!commitRes.ok) throw new Error("GitHub rejected the database commit.");
     const prRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
       method: "POST",
       headers: apiHeaders,
@@ -299,8 +278,8 @@ ${JSON.stringify(finalEntry, null, 2)}`;
         base: baseBranch,
         body: `Bulk submission via ESK8CAD.com.
 
-Parts submitted:
-${parts.map((p) => `- ${p.title} (${p.externalUrl})`).join("\n")}`
+### Parts included:
+${parts.map((p) => `- **${p.title}**: ${p.externalUrl}`).join("\n")}`
       })
     });
     const prData = await logGitHubResponse("Create PR", prRes);
@@ -309,34 +288,16 @@ ${parts.map((p) => `- ${p.title} (${p.externalUrl})`).join("\n")}`
       return new Response(JSON.stringify({
         success: true,
         prUrl: prData.html_url
-      }), {
-        headers: { "Content-Type": "application/json" }
-      });
+      }), { headers: { "Content-Type": "application/json" } });
     } else {
-      const manualUrl = `https://github.com/${owner}/${repo}/compare/${baseBranch}...${branchName}?expand=1`;
-      if (prRes.status === 403 || prRes.status === 422) {
-        return new Response(JSON.stringify({
-          success: true,
-          prUrl: null,
-          manualUrl,
-          warning: "Branch pushed, but PR creation failed due to token permissions."
-        }), {
-          headers: { "Content-Type": "application/json" }
-        });
-      } else if (prRes.status === 429) {
-        return new Response(JSON.stringify({
-          error: "GitHub is currently rate limiting submissions. Your changes are saved to a branch, but you may need to open the PR manually.",
-          manualUrl
-        }), {
-          status: 429,
-          headers: { "Content-Type": "application/json" }
-        });
-      }
-      throw new Error(`PR automation failed (${prRes.status}).`);
+      return new Response(JSON.stringify({
+        success: true,
+        manualUrl: `https://github.com/${owner}/${repo}/compare/${baseBranch}...${branchName}?expand=1`,
+        warning: "Branch created, but PR failed. Please open manually."
+      }), { headers: { "Content-Type": "application/json" } });
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
@@ -848,7 +809,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-V8QqEj/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-Qa1hRO/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -880,7 +841,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-V8QqEj/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-Qa1hRO/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

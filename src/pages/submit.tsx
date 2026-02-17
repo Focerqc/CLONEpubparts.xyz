@@ -1,18 +1,43 @@
 import { type HeadFC, type PageProps } from "gatsby"
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, Component, ErrorInfo, ReactNode } from "react"
 import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge, Modal } from "react-bootstrap"
 import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
 import ClientOnly from "../components/ClientOnly"
 
-export const Head: HeadFC = () => (
-    <>
-        <html lang="en" />
-        <SiteMetaData title="Submit Part | ESK8CAD.COM" />
-    </>
-)
+// --- Error Boundary ---
+interface ErrorBoundaryProps { children: ReactNode; }
+interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
 
+class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    constructor(props: ErrorBoundaryProps) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        console.error("Uncaught error:", error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <Container className="py-5 text-center">
+                    <Alert variant="danger" className="py-5 shadow">
+                        <h2 className="fw-bold">Something went wrong</h2>
+                        <p className="opacity-75">{this.state.error?.message || "A critical error occurred."}</p>
+                        <Button variant="outline-danger" onClick={() => window.location.reload()}>Reload Page</Button>
+                    </Alert>
+                </Container>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+// --- Constants ---
 const PLATFORMS = [
     "Street (DIY/Generic)", "Off-Road (DIY/Generic)", "Misc", "3D Servisas", "Acedeck", "Apex Boards",
     "Backfire", "Bioboards", "Boardnamics", "Defiant Board Society", "Evolve", "Exway",
@@ -42,6 +67,7 @@ interface PartData {
     isOem: boolean;
 }
 
+// --- Sub-Component: PartForm ---
 const PartForm: React.FC<{
     part: PartData;
     index: number;
@@ -74,6 +100,7 @@ const PartForm: React.FC<{
                 signal: controller.signal
             })
             const data = (await res.json()) as { success: boolean; title?: string; image?: string; message?: string };
+            console.log(`[Scraper API] Metadata for Part #${index + 1}:`, data);
             clearTimeout(timeoutId)
 
             if (!res.ok || data.success === false) {
@@ -123,7 +150,7 @@ const PartForm: React.FC<{
                         />
                     </Form.Group>
                     <div className="d-flex align-items-center gap-3 mb-4">
-                        <Button variant="primary" type="submit" size="lg" className="px-5 py-3 fw-bold" disabled={isLocalLoading} style={{ minWidth: '180px' }}>
+                        <Button variant="primary" type="submit" size="lg" className="px-5 py-3 fw-bold shadow-sm" disabled={isLocalLoading} style={{ minWidth: '180px' }}>
                             {isLocalLoading ? <><Spinner animation="border" size="sm" className="me-2" /> Loading...</> : "Fetch Metadata"}
                         </Button>
                         <Form.Check
@@ -215,6 +242,7 @@ const PartForm: React.FC<{
     )
 }
 
+// --- Main Component: SubmitPage ---
 const SubmitPage: React.FC<PageProps> = () => {
     const createEmptyPart = (): PartData => ({
         id: Math.random().toString(36).substr(2, 9),
@@ -234,6 +262,8 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [hpField, setHpField] = useState("")
+    const [manualUrl, setManualUrl] = useState<string | null>(null)
+    const [warning, setWarning] = useState<string | null>(null)
 
     const updatePart = useCallback((id: string, data: Partial<PartData>) => {
         setForms(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
@@ -250,15 +280,10 @@ const SubmitPage: React.FC<PageProps> = () => {
     }
 
     const handleFinalSubmit = async () => {
-        // Validate all
+        // Validation check
         for (const part of forms) {
             if (!part.url || !part.title || part.platform.length === 0 || part.typeOfPart.length === 0) {
                 setError(`Please complete all required fields for every part (Form for "${part.title || 'unnamed part'}").`)
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-                return
-            }
-            if (part.url.length > 500) {
-                setError(`URL for "${part.title}" is too long.`)
                 window.scrollTo({ top: 0, behavior: 'smooth' })
                 return
             }
@@ -266,6 +291,9 @@ const SubmitPage: React.FC<PageProps> = () => {
 
         setIsSubmitting(true)
         setError(null)
+        setManualUrl(null)
+        setWarning(null)
+
         try {
             const payload = {
                 parts: forms.map(p => ({
@@ -287,8 +315,24 @@ const SubmitPage: React.FC<PageProps> = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            const result = (await res.json()) as { error?: string; success?: boolean; prUrl?: string };
-            if (!res.ok) throw new Error(result.error || "Submission failed")
+            const result = (await res.json()) as {
+                error?: string;
+                success?: boolean;
+                prUrl?: string | null;
+                manualUrl?: string | null;
+                warning?: string | null;
+            };
+
+            console.log("[Submit API] Final Response:", result);
+
+            if (!res.ok && !result.manualUrl) {
+                throw new Error(result.error || "Submission request failed.")
+            }
+
+            if (result.manualUrl) {
+                setManualUrl(result.manualUrl)
+                setWarning(result.warning || null)
+            }
 
             setIsSubmitted(true)
             window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -301,91 +345,118 @@ const SubmitPage: React.FC<PageProps> = () => {
     }
 
     return (
-        <div className="bg-black text-light min-vh-100">
-            <SiteNavbar />
-            <Container className="py-5" style={{ maxWidth: '900px' }}>
-                <header className="text-center mb-5">
-                    <h1 className="display-4 fw-bold">Submit Parts</h1>
-                    <p className="text-light opacity-50">Contribute CAD models to our catalog. Batch up to 10 parts in one PR.</p>
-                </header>
+        <AppErrorBoundary>
+            <div className="bg-black text-light min-vh-100">
+                <SiteNavbar />
+                <Container className="py-5" style={{ maxWidth: '900px' }}>
+                    <header className="text-center mb-5">
+                        <h1 className="display-4 fw-bold">Submit Parts</h1>
+                        <p className="text-light opacity-50">Contribute CAD models to our catalog. Batch up to 10 parts in one PR.</p>
+                    </header>
 
-                <ClientOnly fallback={<div className="text-center py-5"><Spinner animation="border" /></div>}>
-                    <div style={{ minHeight: '80px' }}>
-                        {isSubmitted ? (
-                            <Alert variant="success" className="mb-5 p-4 border-0 shadow-lg text-center">
-                                <h4 className="fw-bold mb-2">🚀 Batch Submission Received!</h4>
-                                <p className="mb-3 opacity-75">Thank you for contributing. All parts have been sent for review.</p>
-                                <Button variant="outline-success" onClick={() => { setIsSubmitted(false); setForms([createEmptyPart()]) }}>Submit More</Button>
-                            </Alert>
-                        ) : (
-                            error && <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-4 border-0 shadow-sm">{error}</Alert>
-                        )}
-                    </div>
-
-                    {!isSubmitted && (
-                        <>
-                            {forms.map((part, idx) => (
-                                <PartForm
-                                    key={part.id}
-                                    part={part}
-                                    index={idx}
-                                    onUpdate={updatePart}
-                                    onRemove={removePart}
-                                    canRemove={forms.length > 1}
-                                />
-                            ))}
-
-                            <div className="d-flex flex-column gap-4 mb-5 pb-5">
-                                {forms.length < 10 && (
-                                    <Button variant="outline-primary" size="lg" className="py-3 border-dashed" onClick={addPart}>
-                                        + Add Another Part ({forms.length}/10)
-                                    </Button>
-                                )}
-
-                                <div className="p-4 bg-dark rounded border border-secondary shadow-lg">
-                                    <div className="d-flex flex-column gap-3">
-                                        <p className="small text-light opacity-50 mb-0">One final security check before we open the Pull Request.</p>
-                                        <input
-                                            type="hidden"
-                                            name="hp_field"
-                                            value={hpField}
-                                            onChange={e => setHpField(e.target.value)}
-                                            style={{ display: 'none' }}
-                                            tabIndex={-1}
-                                            autoComplete="off"
-                                        />
+                    <ClientOnly fallback={<div className="text-center py-5"><Spinner animation="border" /></div>}>
+                        <div style={{ minHeight: '100px' }}>
+                            {isSubmitted ? (
+                                <Alert variant={manualUrl ? "warning" : "success"} className="mb-5 p-4 border-0 shadow-lg text-center">
+                                    <h4 className="fw-bold mb-2">{manualUrl ? "⚠️ Branch Pushed!" : "🚀 Submission Received!"}</h4>
+                                    <p className="mb-3 opacity-75">
+                                        {manualUrl
+                                            ? (warning || "Your changes were saved, but automated PR creation skipped. Please click below to finish.")
+                                            : "Thank you for contributing. Your request has been sent for review."
+                                        }
+                                    </p>
+                                    {manualUrl && (
                                         <Button
-                                            variant="primary"
-                                            size="lg"
-                                            className="px-5 py-3 fw-bold shadow-lg"
-                                            onClick={handleFinalSubmit}
-                                            disabled={isSubmitting}
+                                            variant="warning"
+                                            className="fw-bold mb-3 px-4"
+                                            href={manualUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                         >
-                                            {isSubmitting ? <><Spinner animation="border" size="sm" className="me-2" /> Submitting Batch...</> : `Submit All ${forms.length} Parts`}
+                                            Complete PR on GitHub
                                         </Button>
+                                    )}
+                                    <div className="mt-3">
+                                        <Button variant="outline-dark" size="sm" onClick={() => { setIsSubmitted(false); setForms([createEmptyPart()]); setManualUrl(null); setWarning(null); }}>Start New Batch</Button>
+                                    </div>
+                                </Alert>
+                            ) : (
+                                error && (
+                                    <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-4 border-0 shadow-sm p-4">
+                                        <p className="mb-2 fw-bold">Submission Error:</p>
+                                        <p className="mb-0">{error}</p>
+                                    </Alert>
+                                )
+                            )}
+                        </div>
+
+                        {!isSubmitted && (
+                            <>
+                                {forms.map((part, idx) => (
+                                    <PartForm
+                                        key={part.id}
+                                        part={part}
+                                        index={idx}
+                                        onUpdate={updatePart}
+                                        onRemove={removePart}
+                                        canRemove={forms.length > 1}
+                                    />
+                                ))}
+
+                                <div className="d-flex flex-column gap-4 mb-5 pb-5">
+                                    {forms.length < 10 && (
+                                        <Button variant="outline-primary" size="lg" className="py-3 border-dashed" onClick={addPart} disabled={isSubmitting}>
+                                            + Add Another Part ({forms.length}/10)
+                                        </Button>
+                                    )}
+
+                                    <div className="p-4 bg-dark rounded border border-secondary shadow-lg">
+                                        <div className="d-flex flex-column gap-3">
+                                            <p className="small text-light opacity-50 mb-0">
+                                                Note: Fine-grained tokens may require manual PR confirmation. For full automation, a Classic PAT with "repo" scope is recommended.
+                                            </p>
+                                            <input
+                                                type="hidden"
+                                                name="hp_field"
+                                                value={hpField}
+                                                onChange={e => setHpField(e.target.value)}
+                                                style={{ display: 'none' }}
+                                                tabIndex={-1}
+                                                autoComplete="off"
+                                            />
+                                            <Button
+                                                variant="primary"
+                                                size="lg"
+                                                className="px-5 py-3 fw-bold shadow-lg"
+                                                onClick={handleFinalSubmit}
+                                                disabled={isSubmitting}
+                                            >
+                                                {isSubmitting ? <><Spinner animation="border" size="sm" className="me-2" /> Creating Pull Request...</> : `Submit All ${forms.length} Parts`}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </>
-                    )}
-                </ClientOnly>
-            </Container>
+                            </>
+                        )}
+                    </ClientOnly>
+                </Container>
 
-            <SiteFooter />
+                <SiteFooter />
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .bg-secondary { background-color: #121417 !important; } 
-                .border-secondary { border-color: #24282d !important; } 
-                .input-contrast { background-color: #2b3035 !important; border-color: #495057 !important; color: #fff !important; } 
-                .shadow-inner { box-shadow: inset 0 2px 8px rgba(0,0,0,0.7); } 
-                .cursor-pointer { cursor: pointer; } 
-                .uppercase { text-transform: uppercase; }
-                .letter-spacing-1 { letter-spacing: 0.1rem; }
-                .border-dashed { border-style: dashed !important; border-width: 2px !important; }
-                .part-form-card { overflow: visible !important; }
-            ` }} />
-        </div>
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    .bg-secondary { background-color: #121417 !important; } 
+                    .border-secondary { border-color: #24282d !important; } 
+                    .input-contrast { background-color: #2b3035 !important; border-color: #495057 !important; color: #fff !important; } 
+                    .shadow-inner { box-shadow: inset 0 2px 8px rgba(0,0,0,0.7); } 
+                    .cursor-pointer { cursor: pointer; } 
+                    .uppercase { text-transform: uppercase; }
+                    .letter-spacing-1 { letter-spacing: 0.1rem; }
+                    .border-dashed { border-style: dashed !important; border-width: 2px !important; }
+                    .part-form-card { overflow: visible !important; }
+                ` }} />
+            </div>
+        </AppErrorBoundary>
     )
 }
 

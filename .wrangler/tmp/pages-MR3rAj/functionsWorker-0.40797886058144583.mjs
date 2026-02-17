@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-z3mQJP/checked-fetch.js
+// ../.wrangler/tmp/bundle-V8QqEj/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -182,14 +182,32 @@ var onRequestGet = /* @__PURE__ */ __name(async (context) => {
 }, "onRequestGet");
 
 // api/submit.ts
+var logGitHubResponse = /* @__PURE__ */ __name(async (label, response) => {
+  const clone = response.clone();
+  try {
+    const data = await clone.json();
+    console.log(`[GitHub API] ${label} - Status: ${response.status}`, data);
+    return data;
+  } catch {
+    const text = await clone.text();
+    console.log(`[GitHub API] ${label} - Status: ${response.status}`, text);
+    return text;
+  }
+}, "logGitHubResponse");
 var onRequestPost = /* @__PURE__ */ __name(async (context) => {
   const { request, env } = context;
   try {
     const clientIP = request.headers.get("cf-connecting-ip") || "anonymous";
     const now = Date.now();
+    const owner = env.UPSTREAM_OWNER || "Focerqc";
+    const repo = env.UPSTREAM_REPO || "CLONEpubparts.xyz";
+    const baseBranch = env.BASE_BRANCH || "master";
+    const filePath = "src/util/parts.ts";
     const lastSub = await env.SUBMIT_RATE_LIMIT.get(clientIP);
     if (lastSub && now - parseInt(lastSub) < 6e4) {
-      return new Response(JSON.stringify({ error: "Slow down! One submission per minute please." }), {
+      return new Response(JSON.stringify({
+        error: "Rate limit exceeded. Please wait 60 seconds between submissions."
+      }), {
         status: 429,
         headers: { "Content-Type": "application/json" }
       });
@@ -200,36 +218,40 @@ var onRequestPost = /* @__PURE__ */ __name(async (context) => {
       return new Response(JSON.stringify({ success: true, message: "Accepted" }), { status: 200 });
     }
     if (!parts || !Array.isArray(parts) || parts.length === 0) {
-      return new Response(JSON.stringify({ error: "No parts provided" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "No parts provided for submission." }), { status: 400 });
     }
     for (const part of parts) {
       if (!part.title || !part.platform?.length || !part.typeOfPart?.length || !part.externalUrl) {
-        return new Response(JSON.stringify({ error: `Part "${part.title || "Unknown"}" is missing required fields.` }), { status: 400 });
+        return new Response(JSON.stringify({
+          error: `Part "${part.title || "Unknown"}" is missing required fields.`
+        }), { status: 400 });
       }
     }
     const token = env.GITHUB_TOKEN;
-    const owner = "Focerqc";
-    const repo = "CLONEpubparts.xyz";
-    const baseBranch = "master";
-    const filePath = "src/util/parts.ts";
     const apiHeaders = {
       "Authorization": `token ${token}`,
       "Accept": "application/vnd.github.v3+json",
       "User-Agent": "Cloudflare-Pages-Function"
     };
     const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`, { headers: apiHeaders });
-    if (!refRes.ok) throw new Error(`Failed to get base SHA: ${refRes.status}`);
+    await logGitHubResponse("Get Base Ref", refRes);
+    if (!refRes.ok) throw new Error(`Failed to access upstream repository (${refRes.status}).`);
     const refData = await refRes.json();
     const baseSha = refData.object.sha;
     const branchName = `bulk-add-${Date.now()}`;
+    const checkBranchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branchName}`, { headers: apiHeaders });
+    if (checkBranchRes.status !== 404) {
+      throw new Error("Temporary branch collision detected. Please try again.");
+    }
     const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
       method: "POST",
       headers: apiHeaders,
       body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: baseSha })
     });
-    if (!branchRes.ok) throw new Error(`Failed to create branch: ${branchRes.status}`);
+    await logGitHubResponse("Create Branch", branchRes);
+    if (!branchRes.ok) throw new Error("Could not create transition branch in GitHub.");
     const contentRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${branchName}`, { headers: apiHeaders });
-    if (!contentRes.ok) throw new Error(`Failed to fetch file: ${contentRes.status}`);
+    if (!contentRes.ok) throw new Error("Could not retrieve parts database for patching.");
     const contentData = await contentRes.json();
     const base64Content = contentData.content;
     const fileSha = contentData.sha;
@@ -266,7 +288,8 @@ ${JSON.stringify(finalEntry, null, 2)}`;
         branch: branchName
       })
     });
-    if (!commitRes.ok) throw new Error(`Commit failed: ${commitRes.status}`);
+    await logGitHubResponse("Commit Changes", commitRes);
+    if (!commitRes.ok) throw new Error("GitHub rejected the database commit.");
     const prRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
       method: "POST",
       headers: apiHeaders,
@@ -280,17 +303,39 @@ Parts submitted:
 ${parts.map((p) => `- ${p.title} (${p.externalUrl})`).join("\n")}`
       })
     });
+    const prData = await logGitHubResponse("Create PR", prRes);
     if (prRes.ok) {
-      const prData = await prRes.json();
       await env.SUBMIT_RATE_LIMIT.put(clientIP, now.toString());
-      return new Response(JSON.stringify({ success: true, prUrl: prData.html_url }), {
+      return new Response(JSON.stringify({
+        success: true,
+        prUrl: prData.html_url
+      }), {
         headers: { "Content-Type": "application/json" }
       });
     } else {
-      throw new Error(`PR creation failed: ${prRes.status}`);
+      const manualUrl = `https://github.com/${owner}/${repo}/compare/${baseBranch}...${branchName}?expand=1`;
+      if (prRes.status === 403 || prRes.status === 422) {
+        return new Response(JSON.stringify({
+          success: true,
+          prUrl: null,
+          manualUrl,
+          warning: "Branch pushed, but PR creation failed due to token permissions."
+        }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      } else if (prRes.status === 429) {
+        return new Response(JSON.stringify({
+          error: "GitHub is currently rate limiting submissions. Your changes are saved to a branch, but you may need to open the PR manually.",
+          manualUrl
+        }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      throw new Error(`PR automation failed (${prRes.status}).`);
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
@@ -803,7 +848,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-z3mQJP/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-V8QqEj/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -835,7 +880,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-z3mQJP/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-V8QqEj/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

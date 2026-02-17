@@ -88,6 +88,39 @@ const allParts = [
     { title: "placeholder_Stand", fabricationMethod: ["Other"], typeOfPart: ["Stand"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
     { title: "placeholder_Complete board", fabricationMethod: ["Other"], typeOfPart: ["Complete board"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] },
     { title: "placeholder_Miscellaneous", fabricationMethod: ["Other"], typeOfPart: ["Miscellaneous"], imageSrc: "/images/parts/placeholder.png", platform: ["Misc"] }
+,
+  {
+  "title": "cube",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Anti-sink plate"
+  ],
+  "imageSrc": "https://media.printables.com/media/prints/123/images/735_1b2be62e-040b-42c1-80b3-dac918b9262b/thumbs/inside/1920x1440/png/2018-12-18-23_26_23-window.webp",
+  "externalUrl": "https://www.printables.com/model/123-cube",
+  "dropboxUrl": "",
+  "dropboxZipLastUpdated": "2026-02-17",
+  "platform": [
+    "Street (DIY/Generic)"
+  ]
+},
+  {
+  "title": "Funwheel injection molded footpad mini fender F+R",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Anti-sink plate"
+  ],
+  "imageSrc": "https://media.printables.com/media/prints/1018863/images/7739305_db7b6eba-734e-4ac2-9841-980fa47ffa26_fa29a873-d25c-4dac-b5a4-beeb92721dde/thumbs/inside/1920x1440/png/fungineers-mini-fenders.webp",
+  "externalUrl": "https://www.printables.com/model/1018863-funwheel-injection-molded-footpad-mini-fender-fr",
+  "dropboxUrl": "",
+  "dropboxZipLastUpdated": "2026-02-17",
+  "platform": [
+    "Street (DIY/Generic)"
+  ]
+}
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {

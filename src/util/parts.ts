@@ -121,6 +121,39 @@ const allParts = [
     "Street (DIY/Generic)"
   ]
 }
+,
+  {
+  "title": "Cable Clips",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Anti-sink plate"
+  ],
+  "imageSrc": "https://media.printables.com/media/prints/984616c1-46e9-4852-b892-d5633ce0e4e9/images/11824145_c416d32d-e823-45d0-a5ac-14d057cdc160_a6e68142-7ec5-4109-baa8-0b9b863d2647/thumbs/inside/1920x1440/jpg/20260124_182333.webp",
+  "externalUrl": "https://www.printables.com/model/1569315-cable-clips",
+  "dropboxUrl": "",
+  "dropboxZipLastUpdated": "2026-02-17",
+  "platform": [
+    "Street (DIY/Generic)"
+  ]
+},
+  {
+  "title": "Cable Clips",
+  "fabricationMethod": [
+    "3d Printed"
+  ],
+  "typeOfPart": [
+    "Anti-sink plate"
+  ],
+  "imageSrc": "https://media.printables.com/media/prints/381151/images/3197827_2f3fbee6-69de-4179-9a60-367cc4bb3812/thumbs/inside/1920x1440/jpg/cable-clips.webp",
+  "externalUrl": "https://www.printables.com/model/381151-cable-clips",
+  "dropboxUrl": "",
+  "dropboxZipLastUpdated": "2026-02-17",
+  "platform": [
+    "Street (DIY/Generic)"
+  ]
+}
 ] as ItemData[]
 
 const platform = (platformType: PlatformType) => {

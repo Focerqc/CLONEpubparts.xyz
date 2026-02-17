@@ -24,13 +24,15 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
     render() {
         if (this.state.hasError) {
             return (
-                <Container className="py-5 text-center">
-                    <Alert variant="danger" className="py-5 shadow">
-                        <h2 className="fw-bold">Something went wrong</h2>
-                        <p className="opacity-75">{this.state.error?.message || "A critical error occurred."}</p>
-                        <Button variant="outline-danger" onClick={() => window.location.reload()}>Reload Page</Button>
-                    </Alert>
-                </Container>
+                <div className="bg-black text-light min-vh-100 d-flex align-items-center justify-content-center">
+                    <Container className="text-center">
+                        <Alert variant="danger" className="py-5 shadow-lg border-0 bg-dark text-light border-danger border-opacity-25">
+                            <h2 className="fw-bold mb-3">Something went wrong</h2>
+                            <p className="opacity-75 mb-4">{this.state.error?.message || "A critical error occurred while rendering the page."}</p>
+                            <Button variant="info" onClick={() => window.location.reload()}>Reload Page</Button>
+                        </Alert>
+                    </Container>
+                </div>
             );
         }
         return this.props.children;
@@ -68,13 +70,15 @@ interface PartData {
 }
 
 // --- Sub-Component: PartForm ---
-const PartForm: React.FC<{
+interface PartFormProps {
     part: PartData;
     index: number;
     onUpdate: (id: string, data: Partial<PartData>) => void;
     onRemove: (id: string) => void;
     canRemove: boolean;
-}> = ({ part, index, onUpdate, onRemove, canRemove }) => {
+}
+
+const PartForm: React.FC<PartFormProps> = ({ part, index, onUpdate, onRemove, canRemove }) => {
     const [isLocalLoading, setIsLocalLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<'platform' | 'tag' | null>(null)
     const [showErrorModal, setShowErrorModal] = useState(false)
@@ -85,12 +89,6 @@ const PartForm: React.FC<{
         const targetUrl = part.url.trim()
         if (!targetUrl) return
 
-        if (targetUrl.length > 500) {
-            setModalMessage("URL is too long (max 500 characters).")
-            setShowErrorModal(true)
-            return
-        }
-
         setIsLocalLoading(true)
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 8000)
@@ -100,7 +98,6 @@ const PartForm: React.FC<{
                 signal: controller.signal
             })
             const data = (await res.json()) as { success: boolean; title?: string; image?: string; message?: string };
-            console.log(`[Scraper API] Metadata for Part #${index + 1}:`, data);
             clearTimeout(timeoutId)
 
             if (!res.ok || data.success === false) {
@@ -114,98 +111,98 @@ const PartForm: React.FC<{
         } catch (err: unknown) {
             clearTimeout(timeoutId)
             const errorObj = err as Error;
-            const msg = errorObj.name === 'AbortError'
-                ? "Request timed out after 8 seconds. Please fill details manually."
-                : (errorObj.message || "Scrape Failed: Could not fetch metadata.");
-            setModalMessage(msg)
+            setModalMessage(errorObj.name === 'AbortError' ? "Request timed out. Please fill details manually." : errorObj.message);
             setShowErrorModal(true)
         } finally {
             setIsLocalLoading(false)
         }
     }
 
-    const setSingleValue = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {
+    const toggleArrayValue = (field: 'platform' | 'typeOfPart', val: string) => {
+        // Keeping it single-select for consistency with existing search/filtering, but allows toggling
         onUpdate(part.id, { [field]: [val] });
     }
 
     return (
-        <Card className="bg-dark text-light border-secondary shadow-lg mb-5 part-form-card">
-            <Card.Header className="bg-secondary border-0 p-4 d-flex justify-content-between align-items-center">
-                <h4 className="mb-0 fs-5 fw-bold uppercase letter-spacing-1">Part #{index + 1}</h4>
+        <Card className="bg-dark text-light border-secondary shadow-lg mb-5 rounded-xl part-form-card">
+            <Card.Header className="bg-black border-0 p-4 d-flex justify-content-between align-items-center">
+                <span className="small uppercase letter-spacing-1 fw-bold opacity-50">Part Model #{index + 1}</span>
                 {canRemove && (
-                    <Button variant="outline-danger" size="sm" onClick={() => onRemove(part.id)}>Remove</Button>
+                    <Button variant="outline-danger" size="sm" className="rounded-pill px-3" onClick={() => onRemove(part.id)}>Remove</Button>
                 )}
             </Card.Header>
             <Card.Body className="p-4 p-md-5">
                 <Form onSubmit={handleFetchMetadata}>
-                    <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold fs-5">Project Link</Form.Label>
+                    <Form.Label className="small uppercase fw-bold opacity-75 mb-3">Data Source (Printables / Thingiverse)</Form.Label>
+                    <div className="d-flex flex-column flex-md-row gap-3 mb-5">
                         <Form.Control
                             type="url"
-                            placeholder="Paste Printables or Thingiverse URL here"
-                            className="input-contrast text-white border-secondary p-3 shadow-sm"
+                            placeholder="https://www.printables.com/model/..."
+                            className="bg-black text-white border-secondary p-3 shadow-none flex-grow-1"
                             value={part.url}
                             onChange={e => onUpdate(part.id, { url: e.target.value })}
                             required
                         />
-                    </Form.Group>
-                    <div className="d-flex align-items-center gap-3 mb-4">
-                        <Button variant="primary" type="submit" size="lg" className="px-5 py-3 fw-bold shadow-sm" disabled={isLocalLoading} style={{ minWidth: '180px' }}>
-                            {isLocalLoading ? <><Spinner animation="border" size="sm" className="me-2" /> Loading...</> : "Fetch Metadata"}
+                        <Button variant="info" type="submit" className="px-4 fw-bold" disabled={isLocalLoading} style={{ minWidth: '160px' }}>
+                            {isLocalLoading ? <Spinner animation="border" size="sm" /> : "Fetch Metadata"}
                         </Button>
-                        <Form.Check
-                            type="checkbox"
-                            id={`oem-check-${part.id}`}
-                            label="OEM PART"
-                            className="fw-bold text-primary"
-                            checked={part.isOem}
-                            onChange={e => onUpdate(part.id, { isOem: e.target.checked })}
-                        />
                     </div>
                 </Form>
 
-                <hr className="my-5 border-secondary opacity-25" />
-
                 <Row className="gx-5">
-                    <Col md={7}>
+                    <Col lg={7}>
                         <Form.Group className="mb-4">
-                            <Form.Label className="small uppercase fw-bold opacity-75 text-light">Part Title *</Form.Label>
+                            <Form.Label className="small uppercase fw-bold opacity-75">Part Title *</Form.Label>
                             <Form.Control
-                                className="input-contrast text-white border-secondary p-3 shadow-sm"
+                                className="bg-black text-white border-secondary p-3 shadow-none"
                                 value={part.title}
                                 onChange={e => onUpdate(part.id, { title: e.target.value })}
                                 required
                             />
                         </Form.Group>
                         <Form.Group className="mb-4">
-                            <Form.Label className="small uppercase fw-bold opacity-75 text-light">Image URL</Form.Label>
+                            <Form.Label className="small uppercase fw-bold opacity-75">Thumbnail URL</Form.Label>
                             <Form.Control
-                                className="input-contrast text-white border-secondary p-3 shadow-sm"
+                                className="bg-black text-white border-secondary p-3 shadow-none"
                                 value={part.imageSrc}
                                 onChange={e => onUpdate(part.id, { imageSrc: e.target.value })}
                             />
                         </Form.Group>
+                        <Form.Check
+                            type="checkbox"
+                            id={`oem-check-${part.id}`}
+                            label="OFFICIAL OEM PART"
+                            className="fw-bold text-info mb-4"
+                            checked={part.isOem}
+                            onChange={e => onUpdate(part.id, { isOem: e.target.checked })}
+                        />
                     </Col>
-                    <Col md={5}>
-                        <div className="bg-black rounded border border-secondary overflow-hidden position-relative shadow-inner" style={{ width: '100%', paddingBottom: '75%' }}>
-                            {part.imageSrc && <Image src={part.imageSrc} className="position-absolute w-100 h-100 p-2" style={{ objectFit: 'contain' }} />}
+                    <Col lg={5} className="d-flex align-items-center justify-content-center">
+                        <div className="bg-black rounded-3 border border-secondary w-100 overflow-hidden shadow-inner d-flex align-items-center justify-content-center" style={{ aspectRatio: '16/9' }}>
+                            {part.imageSrc ? (
+                                <Image src={part.imageSrc} className="w-100 h-100 p-2" style={{ objectFit: 'contain' }} />
+                            ) : (
+                                <span className="opacity-25 small uppercase letter-spacing-1">Preview</span>
+                            )}
                         </div>
                     </Col>
                 </Row>
 
-                <div className="my-5">
-                    <div className="d-flex gap-2 mb-2">
-                        <Button variant={activeTab === 'platform' ? 'primary' : 'outline-light'} onClick={() => setActiveTab('platform')}>Board Platform *</Button>
-                        <Button variant={activeTab === 'tag' ? 'primary' : 'outline-light'} onClick={() => setActiveTab('tag')}>Technical Tag *</Button>
+                <hr className="my-5 border-secondary opacity-25" />
+
+                <div className="mb-5">
+                    <div className="d-flex gap-2 mb-3">
+                        <Button variant={activeTab === 'platform' ? 'info' : 'outline-info'} onClick={() => setActiveTab('platform')} className={activeTab === 'platform' ? 'text-white' : 'opacity-75'}>Platform *</Button>
+                        <Button variant={activeTab === 'tag' ? 'success' : 'outline-success'} onClick={() => setActiveTab('tag')} className={activeTab === 'tag' ? 'text-white' : 'opacity-75'}>Category *</Button>
                     </div>
-                    <div className={`mt-3 p-4 rounded bg-secondary border border-secondary shadow-sm ${!activeTab ? 'd-none' : ''}`}>
+                    <div className={`p-4 rounded-3 border border-secondary bg-black bg-opacity-50 ${!activeTab ? 'd-none' : ''}`}>
                         <div className="d-flex flex-wrap gap-2">
                             {(activeTab === 'platform' ? PLATFORMS : TAGS).map(opt => (
                                 <Badge
                                     key={opt}
-                                    bg={(activeTab === 'platform' ? part.platform : part.typeOfPart).includes(opt) ? "primary" : "none"}
-                                    className="p-2 border border-light cursor-pointer shadow-sm"
-                                    onClick={() => setSingleValue(activeTab === 'platform' ? 'platform' : 'typeOfPart', opt)}
+                                    bg="none"
+                                    className={`p-2 border cursor-pointer transition ${(activeTab === 'platform' ? part.platform : part.typeOfPart).includes(opt) ? (activeTab === 'platform' ? 'border-info text-info bg-info bg-opacity-10' : 'border-success text-success bg-success bg-opacity-10') : 'border-secondary opacity-50'}`}
+                                    onClick={() => toggleArrayValue(activeTab === 'platform' ? 'platform' : 'typeOfPart', opt)}
                                 >
                                     {opt}
                                 </Badge>
@@ -214,19 +211,20 @@ const PartForm: React.FC<{
                     </div>
                 </div>
 
-                <Row className="mb-4">
-                    <Col md={6}>
-                        <Form.Label className="small uppercase fw-bold opacity-75 text-light">Fab Method *</Form.Label>
-                        <div className="d-flex flex-wrap gap-2 p-3 bg-secondary rounded border border-secondary shadow-inner">
+                <Row>
+                    <Col md={6} className="mb-4 mb-md-0">
+                        <Form.Label className="small uppercase fw-bold opacity-75 mb-3">Primary Fabrication *</Form.Label>
+                        <div className="d-flex flex-wrap gap-2 p-2 bg-black rounded border border-secondary border-opacity-50">
                             {FAB_METHODS.map(m => (
-                                <Button key={m} size="sm" variant={part.fabricationMethod.includes(m) ? "primary" : "outline-light"} onClick={() => setSingleValue('fabricationMethod', m)}>{m}</Button>
+                                <Button key={m} size="sm" variant={part.fabricationMethod.includes(m) ? "secondary" : "link"} className={`text-decoration-none ${part.fabricationMethod.includes(m) ? 'text-white' : 'text-secondary opacity-50'}`} onClick={() => onUpdate(part.id, { fabricationMethod: [m] })}>{m}</Button>
                             ))}
                         </div>
                     </Col>
                     <Col md={6}>
-                        <Form.Label className="small uppercase fw-bold opacity-75 text-light">Mirror Link</Form.Label>
+                        <Form.Label className="small uppercase fw-bold opacity-75 mb-3">Direct Download / Mirror</Form.Label>
                         <Form.Control
-                            className="input-contrast text-white border-secondary p-3 shadow-sm"
+                            className="bg-black text-white border-secondary p-3 shadow-none"
+                            placeholder="Optional backup link"
                             value={part.dropboxUrl}
                             onChange={e => onUpdate(part.id, { dropboxUrl: e.target.value })}
                         />
@@ -234,8 +232,8 @@ const PartForm: React.FC<{
                 </Row>
             </Card.Body>
             <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered contentClassName="bg-dark text-light border-secondary">
-                <Modal.Header closeButton closeVariant="white" className="border-secondary"><Modal.Title className="fw-bold">Scrape Failed</Modal.Title></Modal.Header>
-                <Modal.Body><p>{modalMessage}</p></Modal.Body>
+                <Modal.Header closeButton closeVariant="white" className="border-secondary"><Modal.Title className="fw-bold fs-5">Scrape Failed</Modal.Title></Modal.Header>
+                <Modal.Body className="py-4"><p className="mb-0 opacity-75">{modalMessage}</p></Modal.Body>
                 <Modal.Footer className="border-secondary"><Button variant="outline-light" onClick={() => setShowErrorModal(false)}>Close</Button></Modal.Footer>
             </Modal>
         </Card>
@@ -257,7 +255,8 @@ const SubmitPage: React.FC<PageProps> = () => {
         isOem: false
     })
 
-    const [forms, setForms] = useState<PartData[]>([createEmptyPart()])
+    // RESTORED: Multi-part state management
+    const [parts, setParts] = useState<PartData[]>([createEmptyPart()])
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -266,24 +265,26 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [warning, setWarning] = useState<string | null>(null)
 
     const updatePart = useCallback((id: string, data: Partial<PartData>) => {
-        setForms(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
+        setParts(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
     }, [])
 
     const removePart = useCallback((id: string) => {
-        setForms(prev => prev.length > 1 ? prev.filter(p => p.id !== id) : prev)
+        setParts(prev => prev.length > 1 ? prev.filter(p => p.id !== id) : prev)
     }, [])
 
     const addPart = () => {
-        if (forms.length < 10) {
-            setForms(prev => [...prev, createEmptyPart()])
+        if (parts.length < 10) {
+            setParts(prev => [...prev, createEmptyPart()])
         }
     }
 
-    const handleFinalSubmit = async () => {
-        // Validation check
-        for (const part of forms) {
+    const handleFinalSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
+        // Validate all entries
+        for (const part of parts) {
             if (!part.url || !part.title || part.platform.length === 0 || part.typeOfPart.length === 0) {
-                setError(`Please complete all required fields for every part (Form for "${part.title || 'unnamed part'}").`)
+                setError(`Validation Error: Please fill all required fields (Platform & Tag) for "${part.title || 'untitled part'}".`)
                 window.scrollTo({ top: 0, behavior: 'smooth' })
                 return
             }
@@ -295,25 +296,13 @@ const SubmitPage: React.FC<PageProps> = () => {
         setWarning(null)
 
         try {
-            const payload = {
-                parts: forms.map(p => ({
-                    title: p.title,
-                    imageSrc: p.imageSrc,
-                    platform: p.platform,
-                    fabricationMethod: p.fabricationMethod,
-                    typeOfPart: p.typeOfPart,
-                    dropboxUrl: p.dropboxUrl,
-                    dropboxZipLastUpdated: p.dropboxZipLastUpdated,
-                    externalUrl: p.url,
-                    isOem: p.isOem
-                })),
-                hp_field: hpField
-            }
-
             const res = await fetch('/api/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    parts: parts, // Loop through entire array
+                    hp_field: hpField
+                })
             })
             const result = (await res.json()) as {
                 error?: string;
@@ -323,15 +312,13 @@ const SubmitPage: React.FC<PageProps> = () => {
                 warning?: string | null;
             };
 
-            console.log("[Submit API] Final Response:", result);
-
             if (!res.ok && !result.manualUrl) {
-                throw new Error(result.error || "Submission request failed.")
+                throw new Error(result.error || "Submission failed.")
             }
 
             if (result.manualUrl) {
                 setManualUrl(result.manualUrl)
-                setWarning(result.warning || null)
+                setWarning(result.warning)
             }
 
             setIsSubmitted(true)
@@ -346,113 +333,125 @@ const SubmitPage: React.FC<PageProps> = () => {
 
     return (
         <AppErrorBoundary>
-            <div className="bg-black text-light min-vh-100">
+            <div className="bg-black text-light min-vh-100 flex-column d-flex overflow-visible">
                 <SiteNavbar />
-                <Container className="py-5" style={{ maxWidth: '900px' }}>
-                    <header className="text-center mb-5">
-                        <h1 className="display-4 fw-bold">Submit Parts</h1>
-                        <p className="text-light opacity-50">Contribute CAD models to our catalog. Batch up to 10 parts in one PR.</p>
-                    </header>
 
-                    <ClientOnly fallback={<div className="text-center py-5"><Spinner animation="border" /></div>}>
-                        <div style={{ minHeight: '100px' }}>
-                            {isSubmitted ? (
-                                <Alert variant={manualUrl ? "warning" : "success"} className="mb-5 p-4 border-0 shadow-lg text-center">
-                                    <h4 className="fw-bold mb-2">{manualUrl ? "⚠️ Branch Pushed!" : "🚀 Submission Received!"}</h4>
-                                    <p className="mb-3 opacity-75">
-                                        {manualUrl
-                                            ? (warning || "Your changes were saved, but automated PR creation skipped. Please click below to finish.")
-                                            : "Thank you for contributing. Your request has been sent for review."
-                                        }
-                                    </p>
-                                    {manualUrl && (
-                                        <Button
-                                            variant="warning"
-                                            className="fw-bold mb-3 px-4"
-                                            href={manualUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Complete PR on GitHub
-                                        </Button>
-                                    )}
-                                    <div className="mt-3">
-                                        <Button variant="outline-dark" size="sm" onClick={() => { setIsSubmitted(false); setForms([createEmptyPart()]); setManualUrl(null); setWarning(null); }}>Start New Batch</Button>
-                                    </div>
-                                </Alert>
-                            ) : (
-                                error && (
-                                    <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-4 border-0 shadow-sm p-4">
-                                        <p className="mb-2 fw-bold">Submission Error:</p>
-                                        <p className="mb-0">{error}</p>
+                <header className="py-5 text-center">
+                    <Container>
+                        <h1 className="display-4 fw-bold mb-3" style={{ letterSpacing: '-0.02em' }}>Submit Parts</h1>
+                        <p className="text-info small uppercase letter-spacing-2 fw-bold opacity-75">Contribute models to the community</p>
+                    </Container>
+                </header>
+
+                <main className="flex-grow-1 pb-5">
+                    <Container style={{ maxWidth: '900px' }}>
+                        <ClientOnly fallback={<div className="text-center py-5 opacity-25"><Spinner animation="border" /></div>}>
+                            <div style={{ minHeight: '120px' }}>
+                                {isSubmitted ? (
+                                    <Alert variant={manualUrl ? "warning" : "success"} className="mb-5 p-4 border-0 shadow-lg text-center bg-dark text-light border border-secondary">
+                                        <h4 className="fw-bold mb-3">{manualUrl ? "⚠️ Branch Pushed" : "🚀 Submission Sent!"}</h4>
+                                        <p className="mb-4 opacity-75 mx-auto" style={{ maxWidth: '500px' }}>
+                                            {manualUrl
+                                                ? (warning || "Automated PR creation failed, but your branch is safe. Click below to finish manually.")
+                                                : "Thank you for contributing! Your request has been queued for review."
+                                            }
+                                        </p>
+                                        <div className="d-flex flex-column align-items-center gap-2">
+                                            {manualUrl && (
+                                                <Button
+                                                    variant="warning"
+                                                    className="fw-bold px-5 py-2 shadow"
+                                                    href={manualUrl}
+                                                    target="_blank"
+                                                >
+                                                    Open PR on GitHub
+                                                </Button>
+                                            )}
+                                            <Button variant="outline-light" size="sm" className="mt-4 opacity-50" onClick={() => { setIsSubmitted(false); setParts([createEmptyPart()]); setManualUrl(null); setWarning(null); }}>Submit Another Batch</Button>
+                                        </div>
                                     </Alert>
-                                )
-                            )}
-                        </div>
+                                ) : (
+                                    error && (
+                                        <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-5 border-0 shadow bg-dark text-danger border border-danger border-opacity-25">
+                                            <span className="fw-bold">Error:</span> {error}
+                                        </Alert>
+                                    )
+                                )}
+                            </div>
 
-                        {!isSubmitted && (
-                            <>
-                                {forms.map((part, idx) => (
-                                    <PartForm
-                                        key={part.id}
-                                        part={part}
-                                        index={idx}
-                                        onUpdate={updatePart}
-                                        onRemove={removePart}
-                                        canRemove={forms.length > 1}
-                                    />
-                                ))}
+                            {!isSubmitted && (
+                                <>
+                                    {/* Loop through the parts array to render form sections */}
+                                    {parts.map((part, idx) => (
+                                        <PartForm
+                                            key={part.id}
+                                            part={part}
+                                            index={idx}
+                                            onUpdate={updatePart}
+                                            onRemove={removePart}
+                                            canRemove={parts.length > 1}
+                                        />
+                                    ))}
 
-                                <div className="d-flex flex-column gap-4 mb-5 pb-5">
-                                    {forms.length < 10 && (
-                                        <Button variant="outline-primary" size="lg" className="py-3 border-dashed" onClick={addPart} disabled={isSubmitting}>
-                                            + Add Another Part ({forms.length}/10)
-                                        </Button>
-                                    )}
-
-                                    <div className="p-4 bg-dark rounded border border-secondary shadow-lg">
-                                        <div className="d-flex flex-column gap-3">
-                                            <p className="small text-light opacity-50 mb-0">
-                                                Note: Fine-grained tokens may require manual PR confirmation. For full automation, a Classic PAT with "repo" scope is recommended.
-                                            </p>
-                                            <input
-                                                type="hidden"
-                                                name="hp_field"
-                                                value={hpField}
-                                                onChange={e => setHpField(e.target.value)}
-                                                style={{ display: 'none' }}
-                                                tabIndex={-1}
-                                                autoComplete="off"
-                                            />
-                                            <Button
-                                                variant="primary"
-                                                size="lg"
-                                                className="px-5 py-3 fw-bold shadow-lg"
-                                                onClick={handleFinalSubmit}
-                                                disabled={isSubmitting}
-                                            >
-                                                {isSubmitting ? <><Spinner animation="border" size="sm" className="me-2" /> Creating Pull Request...</> : `Submit All ${forms.length} Parts`}
+                                    <div className="d-flex flex-column gap-4 mb-5">
+                                        {parts.length < 10 && (
+                                            <Button variant="outline-info" size="lg" className="py-4 border-dashed border-opacity-25 text-info fw-bold rounded-xl" onClick={addPart}>
+                                                + Add Another Part Model ({parts.length}/10)
                                             </Button>
+                                        )}
+
+                                        <div className="p-4 p-md-5 bg-dark rounded-4 border border-secondary shadow-lg mt-4">
+                                            <div className="d-flex flex-column gap-4 text-center">
+                                                <div className="mx-auto" style={{ maxWidth: '600px' }}>
+                                                    <p className="small text-light opacity-50 mb-0">
+                                                        Submit all entries together. This will create one GitHub branch and one Pull Request.
+                                                    </p>
+                                                </div>
+                                                <input
+                                                    type="hidden"
+                                                    name="hp_field"
+                                                    value={hpField}
+                                                    onChange={e => setHpField(e.target.value)}
+                                                    className="d-none"
+                                                    tabIndex={-1}
+                                                />
+                                                <Button
+                                                    variant="primary"
+                                                    size="lg"
+                                                    className="px-5 py-3 fw-bold shadow-lg rounded-pill mx-auto"
+                                                    onClick={() => handleFinalSubmit()}
+                                                    disabled={isSubmitting}
+                                                    style={{ minWidth: '300px' }}
+                                                >
+                                                    {isSubmitting ? (
+                                                        <><Spinner animation="border" size="sm" className="me-2" /> Creating Pull Request...</>
+                                                    ) : (
+                                                        `Submit All ${parts.length} Parts`
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </>
-                        )}
-                    </ClientOnly>
-                </Container>
+                                </>
+                            )}
+                        </ClientOnly>
+                    </Container>
+                </main>
 
                 <SiteFooter />
 
                 <style dangerouslySetInnerHTML={{
                     __html: `
-                    .bg-secondary { background-color: #121417 !important; } 
-                    .border-secondary { border-color: #24282d !important; } 
-                    .input-contrast { background-color: #2b3035 !important; border-color: #495057 !important; color: #fff !important; } 
-                    .shadow-inner { box-shadow: inset 0 2px 8px rgba(0,0,0,0.7); } 
-                    .cursor-pointer { cursor: pointer; } 
-                    .uppercase { text-transform: uppercase; }
                     .letter-spacing-1 { letter-spacing: 0.1rem; }
+                    .letter-spacing-2 { letter-spacing: 0.3rem; }
+                    .uppercase { text-transform: uppercase; }
                     .border-dashed { border-style: dashed !important; border-width: 2px !important; }
+                    .transition { transition: all 0.2s ease-in-out; }
+                    .cursor-pointer { cursor: pointer; }
+                    .rounded-xl { border-radius: 1rem !important; }
+                    .shadow-inner { box-shadow: inset 0 2px 10px rgba(0,0,0,0.8); }
+                    .bg-dark { background-color: #090a0b !important; }
+                    .border-secondary { border-color: #24282d !important; }
                     .part-form-card { overflow: visible !important; }
                 ` }} />
             </div>

@@ -3,28 +3,12 @@ const GlobalStyles = () => (
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
 );
 import { type PageProps } from "gatsby"
-import React, { useState, useCallback, Component, ErrorInfo, ReactNode, useRef, useEffect } from "react"
+import React, { useState, useCallback, Component, ErrorInfo, ReactNode } from "react"
 import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge, Modal } from "react-bootstrap"
 import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
 import ClientOnly from "../components/ClientOnly"
-
-declare global {
-    interface Window {
-        turnstile: any;
-    }
-}
-
-class TurnstileErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-    state = { hasError: false };
-    static getDerivedStateFromError() { return { hasError: true }; }
-    render() {
-        return this.state.hasError
-            ? <div style={{ color: '#f87171', padding: '1rem', textAlign: 'center' }}>Captcha failed to load – try refreshing.</div>
-            : this.props.children;
-    }
-}
 
 // --- Error Boundary ---
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -101,7 +85,6 @@ const PartForm: React.FC<{
     const [modalMessage, setModalMessage] = useState("")
     const [selectionSummary, setSelectionSummary] = useState<string[]>([])
 
-    // Update selection summary reactively
     React.useEffect(() => {
         const summary: string[] = [];
         if (part.platform.length > 0) summary.push(part.platform[0]);
@@ -156,10 +139,8 @@ const PartForm: React.FC<{
     const toggleTag = (tag: string) => {
         const currentTags = part.typeOfPart;
         if (currentTags.includes(tag)) {
-            // Toggle off
             onUpdate(part.id, { typeOfPart: [] });
         } else {
-            // Replace (Limit 1)
             onUpdate(part.id, { typeOfPart: [tag] });
         }
     }
@@ -267,7 +248,6 @@ const PartForm: React.FC<{
                         </div>
                     </div>
 
-                    {/* Selection Summary Box */}
                     <div className="mt-4 p-3 rounded-pill bg-black border border-secondary d-flex align-items-center justify-content-center gap-2 flex-wrap shadow-inner" style={{ minHeight: '52px' }}>
                         {selectionSummary.length === 0 && !part.isOem ? (
                             <span className="small text-muted opacity-50 italic">No tags selected yet...</span>
@@ -331,59 +311,6 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [hpField, setHpField] = useState("")
     const [manualUrl, setManualUrl] = useState<string | null>(null)
     const [warning, setWarning] = useState<string | null>(null)
-    const [token, setToken] = useState<string | null>(null)
-    const [errorMsg, setErrorMsg] = useState<string | null>(null)
-    const turnstileRef = useRef<HTMLDivElement>(null)
-    const resetIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-    useEffect(() => {
-        /* TURNSTILE BYPASS MODE: Commented out to fix 400020 error
-        if (!document.querySelector('script[src*="turnstile/v0/api.js"]')) {
-            const script = document.createElement('script');
-            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-            script.async = true;
-            script.defer = true;
-            document.head.appendChild(script);
-        }
-
-        const tryRender = () => {
-            if (turnstileRef.current && window.turnstile) {
-                try {
-                    window.turnstile.render(turnstileRef.current, {
-                        sitekey: '0x4AAAAAAACfVLng3JteKSMhW',
-                        size: 'normal',
-                        theme: 'dark',
-                        callback: (newToken: string) => {
-                            setToken(newToken);
-                            setErrorMsg(null);
-                            if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
-                        },
-                        'error-callback': (code: string) => {
-                            setErrorMsg(`Turnstile init failed (${code}). Retrying...`);
-                            if (!resetIntervalRef.current) {
-                                resetIntervalRef.current = setInterval(() => {
-                                    if (window.turnstile) window.turnstile.reset();
-                                }, 2000);
-                            }
-                        },
-                        'expired-callback': () => {
-                            setToken(null);
-                            if (window.turnstile) window.turnstile.reset();
-                        }
-                    });
-                } catch (err) {
-                    console.error('Turnstile render error:', err);
-                }
-            }
-        };
-
-        const timer = setTimeout(tryRender, 500);
-        return () => {
-            clearTimeout(timer);
-            if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
-        };
-        */
-    }, []);
 
     const updatePart = useCallback((id: string, data: Partial<PartData>) => {
         setForms(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
@@ -400,13 +327,6 @@ const SubmitPage: React.FC<PageProps> = () => {
     }
 
     const handleFinalSubmit = async () => {
-        /* BYPASS MODE: Verification disabled
-        if (!token) {
-            setErrorMsg("Please complete the bot verification before submitting.");
-            return;
-        }
-        */
-
         // Validation check
         for (const part of forms) {
             if (!part.url || !part.title || part.platform.length === 0 || part.typeOfPart.length === 0) {
@@ -435,7 +355,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                     isOem: p.isOem
                 })),
                 hp_field: hpField,
-                turnstile_token: token
+                // turnstile_token removed for bypass
             }
 
             const res = await fetch('/api/submit', {
@@ -511,10 +431,6 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             setForms([createEmptyPart()]);
                                             setManualUrl(null);
                                             setWarning(null);
-                                            setToken(null);
-                                            setTimeout(() => {
-                                                if (window.turnstile) window.turnstile.reset();
-                                            }, 100);
                                         }}>Start New Batch</Button>
                                     </div>
                                 </Alert>
@@ -529,7 +445,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                         </div>
 
                         {!isSubmitted && (
-                            <TurnstileErrorBoundary>
+                            <>
                                 {forms.map((part, idx) => (
                                     <PartForm
                                         key={part.id}
@@ -562,28 +478,11 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 tabIndex={-1}
                                                 autoComplete="off"
                                             />
-                                            {/* Turnstile Widget */}
-                                            <div className="d-flex flex-column align-items-center my-3" style={{ minHeight: '65px' }}>
-                                                {/* BYPASS MODE: Widget hidden
-                                                {errorMsg && (
-                                                    <Alert variant="danger" className="py-2 px-3 mb-2 small w-100 text-center shadow-sm border-0 bg-danger text-white">
-                                                        <strong className="me-2">Verification Error:</strong> {errorMsg}
-                                                    </Alert>
-                                                )}
-                                                <div ref={turnstileRef}></div>
-                                                */}
-                                            </div>
                                             <Button
                                                 variant="primary"
                                                 size="lg"
                                                 className="px-5 py-3 fw-bold shadow-lg"
-                                                onClick={() => {
-                                                    if (!token) {
-                                                        setErrorMsg("Please complete the bot verification before submitting.");
-                                                        return;
-                                                    }
-                                                    handleFinalSubmit();
-                                                }}
+                                                onClick={handleFinalSubmit}
                                                 disabled={isSubmitting}
                                             >
                                                 {isSubmitting ? <><Spinner animation="border" size="sm" className="me-2" /> Creating Pull Request...</> : `Submit All ${forms.length} Parts`}
@@ -591,7 +490,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </TurnstileErrorBoundary>
+                            </>
                         )}
                     </ClientOnly>
                 </Container>

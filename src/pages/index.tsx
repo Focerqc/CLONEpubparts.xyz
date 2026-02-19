@@ -1,6 +1,6 @@
 import { type PageProps } from "gatsby"
-import React from "react"
-import { Container } from "react-bootstrap"
+import React, { useMemo } from "react"
+import { Container, Row } from "react-bootstrap"
 import PartTypesLinks from "../components/PartTypesLinks"
 import TechnicalTagsLinks from "../components/TechnicalTagsLinks"
 import ResourceTypesLinks from "../components/ResourceTypesLinks"
@@ -8,12 +8,22 @@ import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
 import ClientOnly from "../components/ClientOnly"
+import ItemCard from "../components/ItemCard"
+import usePartRegistry from "../hooks/usePartRegistry"
 
 const Page: React.FC<PageProps> = () => {
+    const registryParts = usePartRegistry();
+
+    const recentParts = useMemo(() => {
+        return [...registryParts].reverse().slice(0, 6);
+    }, [registryParts]);
+
     return (
         <div className="bg-black text-light min-vh-100 pb-5">
-            
-            <SiteMetaData title="Home | ESK8CAD.COM" /><header>
+
+            <SiteMetaData title="Home | ESK8CAD.COM" />
+
+            <header>
                 <SiteNavbar isHomepage={true} />
 
                 <div className="py-5 text-center">
@@ -50,8 +60,26 @@ const Page: React.FC<PageProps> = () => {
                         </ClientOnly>
                     </div>
 
+                    {/* SECTION: NEW SUBMISSIONS */}
+                    <div className="mb-5 pt-4">
+                        <h2 className="h4 fw-bold uppercase letter-spacing-1 mb-4 border-bottom border-secondary pb-2" style={{ color: '#ffc107' }}>Recent Submissions</h2>
+                        <ClientOnly fallback={<div className="py-4 text-center opacity-25">Searching registry...</div>}>
+                            <div className="grid-fix-container">
+                                {recentParts.length > 0 ? (
+                                    <Row className="g-4">
+                                        {recentParts.map((part, idx) => ItemCard(part, idx))}
+                                    </Row>
+                                ) : (
+                                    <div className="py-5 text-center bg-dark rounded border border-secondary shadow-sm">
+                                        <p className="mb-0 opacity-50 fw-bold">No parts found in registry.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </ClientOnly>
+                    </div>
+
                     {/* SECTION: RESOURCES */}
-                    <div className="mb-5">
+                    <div className="mb-5 mt-5">
                         <h2 className="h4 fw-bold uppercase letter-spacing-1 mb-4 border-bottom border-secondary pb-2" style={{ color: '#800000' }}>Community Resources</h2>
                         <ClientOnly fallback={<div className="py-4 text-center opacity-25">Loading resources...</div>}>
                             <div className="grid-fix-container">
@@ -75,7 +103,6 @@ const Page: React.FC<PageProps> = () => {
                     overflow: visible !important;
                     min-height: 100px;
                 }
-                /* Ensure all buttons in the grids can wrap and breathe */
                 .btn {
                     margin-bottom: 0.5rem;
                 }

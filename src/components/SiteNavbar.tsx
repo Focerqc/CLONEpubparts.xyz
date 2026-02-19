@@ -8,15 +8,12 @@ import SearchModalCard from "./SearchModalCard"
 import SearchModalSearchbar from "./SearchModalSearchbar"
 import allParts from "../util/parts"
 import allResources from "../util/resources"
+import usePartRegistry from "../hooks/usePartRegistry"
 
 type NavbarProps = {
     isHomepage?: boolean
 }
 
-const allPartsAndResources = [...new Set([
-    allParts,
-    allResources
-].flat())] as (ItemData | ResourceData)[]
 
 /**
  * Creates a {@link https://react-bootstrap.netlify.app/docs/components/navbar | React-Bootstrap Navbar}
@@ -25,8 +22,16 @@ const allPartsAndResources = [...new Set([
  * @param NavbarProps - a {@link NavbarProps} object
  */
 export default ({ isHomepage }: NavbarProps) => {
+    const registryParts = usePartRegistry();
     const [showModal, setShowModal] = useState(false)
     const [isSpinning, setIsSpinning] = useState(false)
+
+    // Merge static and registry parts
+    const allPartsAndResources = [...new Set([
+        allParts,
+        registryParts,
+        allResources
+    ].flat())] as (ItemData | ResourceData)[]
 
     const handleLogoClick = (e: React.MouseEvent) => {
         e.preventDefault();

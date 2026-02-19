@@ -18,11 +18,19 @@ module.exports = {
         "gatsby-transformer-sharp",
         "gatsby-plugin-sitemap",
         "gatsby-plugin-robots-txt",
+        "gatsby-transformer-json",
         {
             resolve: `gatsby-source-filesystem`,
             options: {
                 name: `images`,
                 path: `${__dirname}/static/images`,
+            },
+        },
+        {
+            resolve: `gatsby-source-filesystem`,
+            options: {
+                name: `parts`,
+                path: `${__dirname}/src/data/parts`,
             },
         },
     ]

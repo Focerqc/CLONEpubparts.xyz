@@ -6,15 +6,22 @@ import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
 import ItemCard from "../components/ItemCard"
 import allParts from "../util/parts"
+import usePartRegistry from "../hooks/usePartRegistry"
 
 const OemPage: React.FC<PageProps> = () => {
+    const registryParts = usePartRegistry();
+
+    const combinedParts = useMemo(() => {
+        return [...allParts, ...registryParts];
+    }, [registryParts]);
+
     // Filter logic: Check for "OEM" or "OEM PART" tags
     const oemParts = useMemo(() => {
-        return allParts.filter(p =>
-            p.typeOfPart.some(tag => tag.toUpperCase().includes("OEM")) ||
-            (p as any).isOem // TODO: Fix ItemData type
+        return combinedParts.filter(p =>
+            (p.typeOfPart && p.typeOfPart.some(tag => tag.toUpperCase().includes("OEM"))) ||
+            p.isOem
         );
-    }, []);
+    }, [combinedParts]);
 
     return (
         <div className="bg-black text-light min-vh-100 d-flex flex-column">

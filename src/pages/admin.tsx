@@ -4,7 +4,7 @@ import { Container, Card, Form, Button, Row, Col, Badge, Modal, Alert, Spinner, 
 import SiteNavbar from "../components/SiteNavbar"
 import SiteFooter from "../components/SiteFooter"
 import usePartRegistry from "../hooks/usePartRegistry"
-import ItemCard from "../components/ItemCard"
+import ItemCard, { ItemCardBody } from "../components/ItemCard"
 
 const GlobalStyles = () => (
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
@@ -203,7 +203,7 @@ const AdminPage: React.FC<PageProps> = () => {
                     className={`position-relative h-100 ${isStaged ? 'opacity-25' : ''}`}
                     style={{ filter: isStaged ? 'grayscale(100%)' : 'none', transition: '0.3s' }}
                 >
-                    {ItemCard(part, idx)}
+                    <ItemCardBody item={part} index={idx} />
                     <div className="admin-card-overlay p-2">
                         {fileRelPath ? (
                             <Button
@@ -259,7 +259,7 @@ const AdminPage: React.FC<PageProps> = () => {
     }
 
     return (
-        <div className="bg-black text-light min-vh-100 d-flex flex-column pb-5">
+        <div className="bg-black text-light min-vh-100 d-flex flex-column pb-5 page-items">
             <GlobalStyles />
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -311,11 +311,15 @@ const AdminPage: React.FC<PageProps> = () => {
                                                     {prDetails[pr.number] ? "↓ Contents Loaded" : "View Parts Preview..."}
                                                 </Button>
                                                 {prDetails[pr.number] && (
-                                                    <Row xs={1} md={2} lg={3} className="g-3 bg-black p-4 rounded-3 border border-secondary">
-                                                        {prDetails[pr.number].map((p, i) => (
-                                                            <Col key={i}>{ItemCard(p, i)}</Col>
-                                                        ))}
-                                                    </Row>
+                                                    <div className="bg-black p-4 rounded-3 border border-secondary mt-3">
+                                                        <Row xs={1} md={2} lg={3} className="g-3">
+                                                            {prDetails[pr.number].map((p, i) => (
+                                                                <Col key={i}>
+                                                                    <ItemCardBody item={p} index={i} />
+                                                                </Col>
+                                                            ))}
+                                                        </Row>
+                                                    </div>
                                                 )}
                                             </Card.Body>
                                         </Card>

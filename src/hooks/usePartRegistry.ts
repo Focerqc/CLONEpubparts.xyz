@@ -18,6 +18,11 @@ export const usePartRegistry = () => {
                     dropboxZipLastUpdated
                     externalUrl
                     isOem
+                    parent {
+                        ... on File {
+                            relativePath
+                        }
+                    }
                 }
             }
         }

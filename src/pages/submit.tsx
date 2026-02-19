@@ -231,7 +231,7 @@ const PartForm: React.FC<{
                 <div className="my-5">
                     <div className="d-flex gap-2 mb-2">
                         <Button variant={activeTab === 'platform' ? 'primary' : 'outline-light'} onClick={() => setActiveTab('platform')}>Board Platform *</Button>
-                        <Button variant={activeTab === 'tag' ? 'primary' : 'outline-light'} onClick={() => setActiveTab('tag')}>Technical Tag *</Button>
+                        <Button variant={activeTab === 'tag' ? 'primary' : 'outline-light'} onClick={() => setActiveTab('tag')}>Part Categories *</Button>
                     </div>
                     <div className={`mt-3 p-4 rounded bg-secondary border border-secondary shadow-sm ${!activeTab ? 'd-none' : ''}`}>
                         <div className="d-flex flex-wrap gap-2">

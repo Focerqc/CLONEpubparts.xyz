@@ -15,7 +15,7 @@ type ItemListSearchbarProps = {
  * 
  * @param ItemListSearchbarProps - a {@link ItemListSearchbarProps} object
  */
-export default ({partList}: ItemListSearchbarProps) => {
+export default ({ partList }: ItemListSearchbarProps) => {
     // Arrays from parts lists
     const uniquePartTypes = [...new Set(partList.map((p) => p.typeOfPart).flat())]
     const uniqueFabricationMethods = [...new Set(partList.map((p) => p.fabricationMethod).flat())]
@@ -41,13 +41,13 @@ export default ({partList}: ItemListSearchbarProps) => {
 
     if (!didMount.current && windowIsDefined()) {
         const queryParams = new URLSearchParams(window.location.search)
-        
+
         // Set searchbar text
         const keyword = queryParams.get("keyword") ?? queryParams.get("search") ?? ""
         if (keyword) {
             setSearchText(decodeURIComponent(keyword))
         }
-        
+
         // Set checkboxes as checked
         const type = (queryParams.get("type")?.split(",") ?? []) as PartType[]
         if (type && type.every((t) => uniquePartTypes.includes(t))) {
@@ -55,7 +55,7 @@ export default ({partList}: ItemListSearchbarProps) => {
             type.forEach((t) => tempCheckedTypeBoxes[t] = true)
             setCheckedTypeBoxes(tempCheckedTypeBoxes)
         }
-        
+
         // Set checkboxes as checked
         const fabricationMethod = (queryParams.get("fab")?.split(",") ?? queryParams.get("fabrication")?.split(",") ?? []) as FabricationMethod[]
         if (fabricationMethod && fabricationMethod.every((f) => uniqueFabricationMethods.includes(f))) {
@@ -72,11 +72,11 @@ export default ({partList}: ItemListSearchbarProps) => {
     //#region Checkbox Handlers
 
     const handleTypeCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
-        setCheckedTypeBoxes({...checkedTypeBoxes, [e.target.name]: e.target.checked})
+        setCheckedTypeBoxes({ ...checkedTypeBoxes, [e.target.name]: e.target.checked })
     }
 
     const handleFabricationMethodCheckbox = (e: ChangeEvent<HTMLInputElement>) => {
-        setCheckedFabricationMethodBoxes({...checkedFabricationMethodBoxes, [e.target.name]: e.target.checked})
+        setCheckedFabricationMethodBoxes({ ...checkedFabricationMethodBoxes, [e.target.name]: e.target.checked })
     }
 
     //#endregion
@@ -125,7 +125,7 @@ export default ({partList}: ItemListSearchbarProps) => {
                 (item as HTMLElement).style.display = "block";
             }
         })
-        
+
         //#endregion
         //#region Results Headers
 
@@ -183,7 +183,7 @@ export default ({partList}: ItemListSearchbarProps) => {
                     {uniquePartTypes.length > 1 &&
                         <div className="searchTypeCheckBoxes">
                             <Form.Label as="h3">
-                                Part Type(s):
+                                Part Categories:
                             </Form.Label>
 
                             <ButtonGroup size="sm">
@@ -233,7 +233,7 @@ export default ({partList}: ItemListSearchbarProps) => {
                             type="button"
                             size="sm"
                             variant="outline-info"
-                            style={{display: showCopySearchButton ? "initial" : "none", maxWidth: "max-content"}}
+                            style={{ display: showCopySearchButton ? "initial" : "none", maxWidth: "max-content" }}
                             onClick={() => clearSearch()}>
                             Clear Search <FaArrowRotateLeft />
                         </Button>
@@ -241,7 +241,7 @@ export default ({partList}: ItemListSearchbarProps) => {
                         <CopyLinkButton
                             text="Copy This Search"
                             link={!windowIsDefined() ? "#" : "http://" + window.location.host + window.location.pathname + `?search=${encodeURIComponent(searchText)}` + `&type=${uniquePartTypes.filter((t) => !!checkedTypeBoxes[t])}` + `&fab=${uniqueFabricationMethods.filter((f) => !!checkedFabricationMethodBoxes[f])}`}
-                            style={{display: showCopySearchButton ? "initial" : "none", maxWidth: "max-content"}} />
+                            style={{ display: showCopySearchButton ? "initial" : "none", maxWidth: "max-content" }} />
                     </Stack>
                 </Stack>
 
@@ -249,6 +249,6 @@ export default ({partList}: ItemListSearchbarProps) => {
             </div>
         </>
     )
-    
+
     //#endregion
 }

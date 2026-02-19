@@ -14,9 +14,6 @@ import usePartRegistry from "../hooks/usePartRegistry"
 const Page: React.FC<PageProps> = () => {
     const registryParts = usePartRegistry();
 
-    const recentParts = useMemo(() => {
-        return [...registryParts].reverse().slice(0, 6);
-    }, [registryParts]);
 
     return (
         <div className="bg-black text-light min-vh-100 pb-5">
@@ -56,24 +53,6 @@ const Page: React.FC<PageProps> = () => {
                         <ClientOnly fallback={<div className="py-4 text-center opacity-25">Loading categories...</div>}>
                             <div className="grid-fix-container">
                                 <TechnicalTagsLinks />
-                            </div>
-                        </ClientOnly>
-                    </div>
-
-                    {/* SECTION: NEW SUBMISSIONS */}
-                    <div className="mb-5 pt-4">
-                        <h2 className="h4 fw-bold uppercase letter-spacing-1 mb-4 border-bottom border-secondary pb-2" style={{ color: '#ffc107' }}>Recent Submissions</h2>
-                        <ClientOnly fallback={<div className="py-4 text-center opacity-25">Searching registry...</div>}>
-                            <div className="grid-fix-container">
-                                {recentParts.length > 0 ? (
-                                    <Row className="g-4">
-                                        {recentParts.map((part, idx) => ItemCard(part, idx))}
-                                    </Row>
-                                ) : (
-                                    <div className="py-5 text-center bg-dark rounded border border-secondary shadow-sm">
-                                        <p className="mb-0 opacity-50 fw-bold">No parts found in registry.</p>
-                                    </div>
-                                )}
                             </div>
                         </ClientOnly>
                     </div>

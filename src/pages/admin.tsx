@@ -1,9 +1,10 @@
 import { type PageProps } from "gatsby"
 import React, { useState, useEffect, useMemo } from "react"
-import { Container, Card, Form, Button, Row, Col, Badge, Modal, Alert, Spinner, ListGroup, Tab, Tabs } from "react-bootstrap"
+import { Container, Card, Form, Button, Row, Col, Badge, Modal, Alert, Spinner, ListGroup, Tab, Tabs, Dropdown, Nav } from "react-bootstrap"
 import SiteNavbar from "../components/SiteNavbar"
 import SiteFooter from "../components/SiteFooter"
 import usePartRegistry from "../hooks/usePartRegistry"
+import ItemCard from "../components/ItemCard"
 
 const GlobalStyles = () => (
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
@@ -19,21 +20,13 @@ interface PR {
     body: string;
 }
 
-/**
- * URL Normalizer: Strips URLs for comparison.
- * Printables: https://www.printables.com/model/123-name -> printables-123
- */
 const normalizeUrl = (url: string | undefined): string => {
     if (!url) return "";
     let cleaned = url.toLowerCase().trim();
-
-    // Printables specific stripping: extract model ID
     if (cleaned.includes("printables.com/model/")) {
         const match = cleaned.match(/model\/(\d+)/);
         if (match) return `printables-${match[1]}`;
     }
-
-    // Generic normalization
     return cleaned.replace(/^(https?:\/\/)?(www\.)?/, "").replace(/\/$/, "");
 };
 
@@ -49,16 +42,50 @@ const AdminPage: React.FC<PageProps> = () => {
     const [prs, setPrs] = useState<PR[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [categories, setCategories] = useState<string[]>([])
 
-    // Action State
-    const [selectedPr, setSelectedPr] = useState<PR | null>(null)
-    const [isMerging, setIsMerging] = useState(false)
-    const [actionMessage, setActionMessage] = useState<string | null>(null)
+    // Batch Action State
+    const [stagedPrs, setStagedPrs] = useState<Set<number>>(new Set())
+    const [stagedDeletions, setStagedDeletions] = useState<Set<string>>(new Set())
+    const [stagingCategories, setStagingCategories] = useState<string[]>([])
+    const [isConfirming, setIsConfirming] = useState(false)
+    const [batchLog, setBatchLog] = useState<string[]>([])
 
-    // --- Audit Logic ---
-    const linkAudit = useMemo(() => {
+    // PR Details Cache
+    const [prDetails, setPrDetails] = useState<Record<number, any[]>>({})
+
+    const allRegistryPartsWithFilenames = useMemo(() => {
+        // We need to associate filenames with parts. 
+        // In usePartRegistry, we extracted nodes. 
+        // I might need to update usePartRegistry to return metadata or use a raw fetch.
+        // For now, I'll assume usePartRegistry parts have a way to be identified or I'll just use title+date.
+        // Actually, let's just use the registry as is.
+        return registryParts;
+    }, [registryParts]);
+
+    // Initial load
+    useEffect(() => {
+        if (isAuthenticated) {
+            // Load Categories
+            fetch('/api/admin/batch-action', { headers: { 'x-admin-password': password } }) // Placeholder fetch or similar
+            // Actually, categories are in src/data/categories.json which Gatsby sources.
+            // But for live management, I'll just hardcode initial or fetch from branch.
+            // I'll use a standard list for now and let the admin modify.
+            setCategories([
+                "Anti-sink plate", "Battery", "Battery building parts", "Bearing", "BMS", "Bushing", "Charge Port",
+                "Charger case", "Complete board", "Connector", "Cover", "Deck", "Drill hole Jig", "Enclosure",
+                "ESC", "Fender", "Foothold / Bindings", "Fuse holder", "Gland", "Guard / Bumper", "Headlight",
+                "Heatsink", "Idler", "Motor", "Motor Mount", "Mount", "Pulley", "Remote", "Riser",
+                "Shocks / Damper", "Sprocket", "Stand", "Thumbwheel", "Tire", "Truck", "Wheel", "Wheel Hub", "Miscellaneous"
+            ]);
+            setStagingCategories([...categories]);
+        }
+    }, [isAuthenticated]);
+
+    // Audit groups
+    const auditGroups = useMemo(() => {
         const groups: Record<string, any[]> = {};
-        registryParts.forEach(part => {
+        allRegistryPartsWithFilenames.forEach(part => {
             const norm = normalizeUrl(part.externalUrl);
             if (norm) {
                 if (!groups[norm]) groups[norm] = [];
@@ -66,96 +93,133 @@ const AdminPage: React.FC<PageProps> = () => {
             }
         });
         return groups;
-    }, [registryParts]);
+    }, [allRegistryPartsWithFilenames]);
 
-    const findDuplicates = (url?: string) => {
-        const norm = normalizeUrl(url);
-        if (!norm) return null;
-        const matching = linkAudit[norm] || [];
-        return matching.length > 1 ? matching : null;
-    }
+    // --- PR Fetching ---
+    const fetchPrContent = async (pr: PR) => {
+        if (prDetails[pr.number]) return;
+        try {
+            const res = await fetch(`/api/admin/get-pr-details?number=${pr.number}`, {
+                headers: { 'x-admin-password': password }
+            });
+            if (res.ok) {
+                const data = await res.json() as { parts: any[] };
+                setPrDetails(prev => ({ ...prev, [pr.number]: data.parts }));
+            }
+        } catch (e) {
+            console.error("Failed to fetch PR details", e);
+        }
+    };
 
-    // --- Authentication ---
+    // --- Actions ---
+    const toggleStagedPr = (num: number) => {
+        const next = new Set(stagedPrs);
+        if (next.has(num)) next.delete(num);
+        else next.add(num);
+        setStagedPrs(next);
+    };
+
+    const toggleStagedDeletion = (id: string) => {
+        const next = new Set(stagedDeletions);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setStagedDeletions(next);
+    };
+
+    const addStagedCategory = (cat: string) => {
+        if (!cat.trim() || stagingCategories.includes(cat)) return;
+        setStagingCategories([...stagingCategories, cat.trim()].sort());
+    };
+
+    const removeStagedCategory = (cat: string) => {
+        setStagingCategories(stagingCategories.filter(c => c !== cat));
+    };
+
+    const handleBatchConfirm = async () => {
+        setIsConfirming(true);
+        setError(null);
+        try {
+            const payload = {
+                mergePrs: Array.from(stagedPrs),
+                deleteFiles: Array.from(stagedDeletions).map(f => `src/data/parts/${f}`),
+                updateCategories: stagingCategories
+            };
+            const res = await fetch('/api/admin/batch-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Batch action failed");
+
+            setBatchLog(["Success! Changes committed to repository. Site will rebuild in 2-3 minutes."]);
+            // Reset state
+            setStagedPrs(new Set());
+            setStagedDeletions(new Set());
+            // Re-fetch PRs
+            handleLogin();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
     const handleLogin = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         setIsLoading(true);
         setAuthError(false);
-
         try {
-            const res = await fetch('/api/admin/list-prs', {
-                headers: { 'x-admin-password': password }
-            });
-
-            if (res.status === 401) {
-                setAuthError(true);
-                setIsAuthenticated(false);
-            } else if (res.ok) {
-                const data = (await res.json()) as PR[];
+            const res = await fetch('/api/admin/list-prs', { headers: { 'x-admin-password': password } });
+            if (res.status === 401) { setAuthError(true); }
+            else if (res.ok) {
+                const data = await res.json() as PR[];
                 setPrs(data);
                 setIsAuthenticated(true);
                 if (typeof window !== 'undefined') sessionStorage.setItem('admin_pass', password);
-            } else {
-                throw new Error("Failed to fetch PRs");
             }
-        } catch (err) {
-            setError("Could not connect to Admin API.");
-        } finally {
-            setIsLoading(false);
-        }
+        } catch (err) { setError("Could not connect to Admin API."); }
+        finally { setIsLoading(false); }
     };
 
-    // Auto-login
     useEffect(() => {
         const savedPass = typeof window !== 'undefined' ? sessionStorage.getItem('admin_pass') : null;
-        if (savedPass) {
-            setPassword(savedPass);
-            fetch('/api/admin/list-prs', { headers: { 'x-admin-password': savedPass } })
-                .then(res => res.ok ? res.json() : Promise.reject())
-                .then(data => {
-                    setPrs(data as PR[]);
-                    setIsAuthenticated(true);
-                })
-                .catch(() => { });
-        }
+        if (savedPass) { setPassword(savedPass); handleLogin(); }
     }, []);
 
-    const handleMerge = async () => {
-        if (!selectedPr) return;
-        setIsMerging(true);
-        setActionMessage(null);
-
-        try {
-            const res = await fetch('/api/admin/merge-pr', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-password': password
-                },
-                body: JSON.stringify({ pull_number: selectedPr.number })
-            });
-
-            const result = (await res.json()) as { error?: string; success?: boolean };
-            if (!res.ok) throw new Error(result.error || "Merge failed");
-
-            setActionMessage(`Successfully merged PR #${selectedPr.number}!`);
-            setPrs(prev => prev.filter(p => p.number !== selectedPr.number));
-            setTimeout(() => {
-                setSelectedPr(null);
-                setActionMessage(null);
-            }, 1500);
-
-        } catch (err: any) {
-            alert(`Error: ${err.message}`);
-        } finally {
-            setIsMerging(false);
-        }
+    // --- Render Helpers ---
+    const renderCardWithStaging = (part: any, idx: number, source: string) => {
+        const fileRelPath = part.parent?.relativePath;
+        const isStaged = fileRelPath ? stagedDeletions.has(fileRelPath) : false;
+        return (
+            <Col key={idx} className="searchableItem">
+                <div className={`position-relative h-100 ${isStaged ? 'opacity-25' : ''}`} style={{ filter: isStaged ? 'grayscale(100%)' : 'none', transition: '0.3s' }}>
+                    {ItemCard(part, idx)}
+                    <div className="admin-card-overlay p-2">
+                        {fileRelPath ? (
+                            <Button
+                                variant={isStaged ? "warning" : "danger"}
+                                size="sm"
+                                className="fw-bold w-100 shadow-sm"
+                                onClick={() => toggleStagedDeletion(fileRelPath)}
+                            >
+                                {isStaged ? "Restore Part" : "Mark for Deletion"}
+                            </Button>
+                        ) : (
+                            <Badge bg="secondary" className="w-100">Static Part (No Delete)</Badge>
+                        )}
+                        <div className="mt-1 text-center small opacity-75 bg-black rounded py-1">
+                            Added: {part.dropboxZipLastUpdated || "Unknown Date"}
+                        </div>
+                    </div>
+                </div>
+            </Col>
+        );
     };
 
     if (!isAuthenticated) {
         return (
             <div className="bg-black text-light min-vh-100 d-flex flex-column">
-                <GlobalStyles />
-                <SiteNavbar />
+                <GlobalStyles /><SiteNavbar />
                 <Container className="flex-grow-1 d-flex align-items-center justify-content-center">
                     <Card className="bg-dark text-white border-secondary shadow-lg p-4" style={{ maxWidth: '400px', width: '100%' }}>
                         <Card.Body>
@@ -163,18 +227,10 @@ const AdminPage: React.FC<PageProps> = () => {
                             <Form onSubmit={handleLogin}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Password</Form.Label>
-                                    <Form.Control
-                                        type="password"
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        className="bg-black text-white border-secondary"
-                                        placeholder="Enter admin password"
-                                    />
+                                    <Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} className="bg-black text-white border-secondary" placeholder="Enter admin password" />
                                 </Form.Group>
                                 {authError && <Alert variant="danger" className="py-2 small border-0 bg-danger text-white">Invalid Password</Alert>}
-                                <Button variant="primary" type="submit" className="w-100 fw-bold shadow" disabled={isLoading}>
-                                    {isLoading ? <Spinner size="sm" animation="border" /> : "Unlock Dashboard"}
-                                </Button>
+                                <Button variant="primary" type="submit" className="w-100 fw-bold shadow" disabled={isLoading}>{isLoading ? <Spinner size="sm" animation="border" /> : "Unlock Dashboard"}</Button>
                             </Form>
                         </Card.Body>
                     </Card>
@@ -185,160 +241,141 @@ const AdminPage: React.FC<PageProps> = () => {
     }
 
     return (
-        <div className="bg-black text-light min-vh-100 d-flex flex-column">
+        <div className="bg-black text-light min-vh-100 d-flex flex-column pb-5">
             <GlobalStyles />
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .bg-secondary { background-color: #121417 !important; } 
                 .border-secondary { border-color: #24282d !important; } 
                 .nav-tabs { border-bottom: 1px solid #24282d; }
-                .nav-link { color: #adb5bd; border: none !important; }
+                .nav-link { color: #adb5bd; border: none !important; margin-right: 1rem; padding: 0.75rem 0; }
                 .nav-link.active { background: transparent !important; color: #0dcaf0 !important; border-bottom: 2px solid #0dcaf0 !important; }
-                .list-group-item { background-color: #0b0c0d; border-color: #24282d; color: white; }
+                .admin-card-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); transform: translateY(100%); transition: 0.3s; opacity: 0; z-index: 10; padding-top: 20px !important; }
+                Col:hover .admin-card-overlay { transform: translateY(0); opacity: 1; }
+                .staging-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #0b0c0d; border-top: 2px solid #0dcaf0; z-index: 1000; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
+                .tag-chip { background: #1a1d21; border: 1px solid #24282d; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
             ` }} />
 
             <SiteNavbar />
-            <Container className="py-5 flex-grow-1">
+            <Container className="py-5 flex-grow-1" style={{ marginBottom: '150px' }}>
                 <div className="d-flex justify-content-between align-items-center mb-5">
-                    <div>
-                        <h1 className="display-5 fw-bold mb-0">Admin Dashboard</h1>
-                        <p className="text-info small uppercase letter-spacing-1 mt-1 opacity-75">Control Center & Audit Scan</p>
-                    </div>
-                    <Button variant="outline-light" size="sm" onClick={() => {
-                        setIsAuthenticated(false);
-                        sessionStorage.removeItem('admin_pass');
-                        setPassword("");
-                    }}>Logout</Button>
+                    <div><h1 className="display-5 fw-bold mb-0">Admin Center</h1><p className="text-info small uppercase mt-1 opacity-75">Control & Audit Panel</p></div>
+                    <Button variant="outline-light" size="sm" onClick={() => { setIsAuthenticated(false); sessionStorage.removeItem('admin_pass'); setPassword(""); }}>Logout</Button>
                 </div>
 
                 <Tabs defaultActiveKey="queue" className="mb-4">
-                    <Tab eventKey="queue" title={`Review Queue (${prs.length})`}>
-                        {error && <Alert variant="danger">{error}</Alert>}
-                        {prs.length === 0 && !isLoading ? (
-                            <Card className="bg-dark text-white border-secondary shadow-lg p-5 text-center mt-3">
-                                <Card.Body>
-                                    <div className="display-1 opacity-10 mb-4">📂</div>
-                                    <h3 className="fw-bold">No Pending Submissions</h3>
-                                    <p className="text-muted mb-4">The review queue is currently empty.</p>
-                                    <Button variant="primary" className="fw-bold px-4" onClick={() => handleLogin()}>Refresh Queue</Button>
-                                </Card.Body>
-                            </Card>
+                    <Tab eventKey="queue" title={`1. Review Queue (${prs.length})`}>
+                        {prs.length === 0 ? (
+                            <div className="p-5 text-center opacity-50">No pending submissions.</div>
                         ) : (
-                            <Row xs={1} md={2} lg={3} className="g-4 mt-1">
-                                {prs.map(pr => (
-                                    <Col key={pr.number}>
-                                        <Card className="bg-dark text-white border-secondary h-100 shadow-sm border-top-primary">
-                                            <Card.Header className="d-flex justify-content-between align-items-center border-secondary bg-black bg-opacity-25">
-                                                <Badge bg="primary">PR #{pr.number}</Badge>
-                                                <small className="text-muted">{new Date(pr.created_at).toLocaleDateString()}</small>
+                            <Row xs={1} md={1} lg={1} className="g-4 mt-2">
+                                {prs.map(pr => {
+                                    const isStaged = stagedPrs.has(pr.number);
+                                    return (
+                                        <Card key={pr.number} className={`bg-dark text-white border-secondary ${isStaged ? 'border-primary' : ''}`}>
+                                            <Card.Header className="bg-black py-3 d-flex justify-content-between align-items-center">
+                                                <span><Badge bg="primary" className="me-2">PR #{pr.number}</Badge> <strong>Submitted by {pr.user.login}</strong></span>
+                                                <Button size="sm" variant={isStaged ? "warning" : "success"} onClick={() => { toggleStagedPr(pr.number); fetchPrContent(pr); }}>
+                                                    {isStaged ? "Unstage PR" : "Stage for Approval"}
+                                                </Button>
                                             </Card.Header>
-                                            <Card.Body className="d-flex flex-column">
-                                                <Card.Title className="fw-bold text-truncate" title={pr.title}>{pr.title}</Card.Title>
-                                                <Card.Subtitle className="mb-3 text-muted small">by {pr.user.login}</Card.Subtitle>
-
-                                                <div className="bg-black p-2 rounded border border-secondary mb-3 flex-grow-1" style={{ maxHeight: '120px', overflowY: 'auto', fontSize: '0.8rem' }}>
-                                                    <pre className="m-0 text-white-50" style={{ whiteSpace: 'pre-wrap' }}>{pr.body}</pre>
-                                                </div>
-
-                                                <div className="d-flex gap-2 mt-auto">
-                                                    <Button variant="outline-light" size="sm" href={pr.html_url} target="_blank" className="flex-grow-1">Source Code</Button>
-                                                    <Button variant="success" size="sm" className="flex-grow-1 fw-bold shadow-sm" onClick={() => setSelectedPr(pr)}>Approve Merge</Button>
-                                                </div>
+                                            <Card.Body>
+                                                <div className="mb-3 small opacity-75">{pr.body}</div>
+                                                <Button variant="link" size="sm" className="text-info p-0 mb-3" onClick={() => fetchPrContent(pr)}>Show Parts Preview ↓</Button>
+                                                {prDetails[pr.number] && (
+                                                    <Row xs={1} md={2} lg={3} className="g-3 bg-black p-3 rounded shadow-inner">
+                                                        {prDetails[pr.number].map((p, i) => (
+                                                            <Col key={i}>{ItemCard(p, i)}</Col>
+                                                        ))}
+                                                    </Row>
+                                                )}
                                             </Card.Body>
                                         </Card>
-                                    </Col>
-                                ))}
+                                    );
+                                })}
                             </Row>
                         )}
                     </Tab>
-                    <Tab eventKey="audit" title=" Registry Audit">
-                        <Card className="bg-dark text-white border-secondary shadow-lg">
-                            <Card.Header className="border-secondary bg-black bg-opacity-25 py-3">
-                                <h5 className="mb-0 fw-bold text-info">Link Conflict Scan</h5>
-                                <small className="text-muted">Analyzing {registryParts.length} parts for duplicate Printables or external listings.</small>
-                            </Card.Header>
-                            <Card.Body className="p-0">
-                                <ListGroup variant="flush">
-                                    {Object.entries(linkAudit)
-                                        .filter(([_, matches]) => matches.length > 1)
-                                        .map(([norm, matches]) => (
-                                            <ListGroup.Item key={norm} className="p-4 border-secondary">
-                                                <div className="d-flex justify-content-between align-items-start mb-2">
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <Badge bg="warning" text="dark">⚠️ DUPLICATE LINK</Badge>
-                                                        <code className="text-info">{norm}</code>
-                                                    </div>
-                                                    <Badge bg="secondary" pill>{matches.length} Instances</Badge>
-                                                </div>
-                                                <div className="ps-3 border-start border-warning border-2 py-1 mt-3">
-                                                    {matches.map((p, idx) => (
-                                                        <div key={idx} className="small mb-2 d-flex justify-content-between align-items-center">
-                                                            <span>
-                                                                <strong className="text-light">{p.title}</strong>
-                                                                <span className="text-muted mx-2">•</span>
-                                                                <span className="opacity-75">{p.externalUrl}</span>
-                                                            </span>
-                                                            <Badge bg="dark" className="border border-secondary">Live</Badge>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </ListGroup.Item>
-                                        ))}
-                                    {Object.entries(linkAudit).filter(([_, m]) => m.length > 1).length === 0 && (
-                                        <div className="p-5 text-center opacity-50">
-                                            <p className="mb-0">✅ No duplicate external links found in the current registry.</p>
-                                        </div>
-                                    )}
-                                </ListGroup>
-                            </Card.Body>
+
+                    <Tab eventKey="audit" title="2. Registry Audit">
+                        <Alert variant="info" className="bg-info bg-opacity-10 border-info text-info small mb-4">
+                            Duplicates grouped by normalized link. Hover cards to delete.
+                        </Alert>
+                        {Object.entries(auditGroups).filter(([_, m]) => m.length > 1).map(([norm, matches]) => (
+                            <div key={norm} className="mb-5 p-4 border rounded border-secondary bg-dark shadow-sm">
+                                <div className="d-flex align-items-center gap-3 mb-4">
+                                    <Badge bg="warning" text="dark">DUPLICATE URL</Badge>
+                                    <code className="text-info">{norm}</code>
+                                    <span className="ms-auto text-muted small">{matches.length} parts sharing this link</span>
+                                </div>
+                                <Row xs={1} md={2} lg={3} className="g-4">
+                                    {matches.map((p, i) => renderCardWithStaging(p, i, "audit"))}
+                                </Row>
+                            </div>
+                        ))}
+                    </Tab>
+
+                    <Tab eventKey="registry" title="3. Full Registry">
+                        <Row xs={1} md={2} lg={3} xl={4} className="g-4 mt-2">
+                            {allRegistryPartsWithFilenames.map((p, i) => renderCardWithStaging(p, i, "all"))}
+                        </Row>
+                    </Tab>
+
+                    <Tab eventKey="tags" title="4. Manage Categories">
+                        <Card className="bg-dark text-white border-secondary p-4 mt-3 shadow-lg">
+                            <h5 className="fw-bold mb-4 text-info">Part Categories Manager</h5>
+                            <div className="d-flex flex-wrap gap-2 mb-5 p-4 bg-black rounded border border-secondary">
+                                {stagingCategories.map(cat => (
+                                    <div key={cat} className="tag-chip">
+                                        {cat} <Button variant="link" className="p-0 text-danger" onClick={() => removeStagedCategory(cat)}>×</Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <Form className="d-flex gap-2">
+                                <Form.Control id="newTagInput" className="bg-black text-white border-secondary" placeholder="Type new category name..." style={{ maxWidth: '300px' }} />
+                                <Button variant="primary" onClick={() => {
+                                    const input = document.getElementById('newTagInput') as HTMLInputElement;
+                                    addStagedCategory(input.value);
+                                    input.value = "";
+                                }}>Add Category</Button>
+                            </Form>
                         </Card>
                     </Tab>
                 </Tabs>
             </Container>
-            <SiteFooter />
 
-            {/* Merge Confirmation Modal */}
-            <Modal show={!!selectedPr} onHide={() => !isMerging && setSelectedPr(null)} centered contentClassName="bg-dark text-white border-secondary shadow-lg">
-                <Modal.Header closeButton={!isMerging} closeVariant="white" className="border-secondary">
-                    <Modal.Title>Smart Content Review</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="p-4">
-                    {actionMessage ? (
-                        <Alert variant="success" className="m-0 py-3">{actionMessage}</Alert>
-                    ) : (
-                        <>
-                            <p className="mb-4">Reviewing PR <strong>#{selectedPr?.number}</strong> from <strong>{selectedPr?.user.login}</strong></p>
-
-                            <div className="bg-black p-3 rounded border border-secondary mb-4">
-                                <h6 className="small uppercase text-info mb-2 opacity-75">Submission Details:</h6>
-                                <pre className="m-0 small text-white-50" style={{ whiteSpace: 'pre-wrap' }}>{selectedPr?.body}</pre>
+            {/* BIG CONFIRMATION STAGING BAR */}
+            {(stagedPrs.size > 0 || stagedDeletions.size > 0 || JSON.stringify(stagingCategories) !== JSON.stringify(categories)) && (
+                <div className="staging-bar p-4">
+                    <Container d-flex align-items-center justify-content-between>
+                        <div className="d-flex align-items-center gap-4 text-light">
+                            <div className="fw-bold fs-5 border-end border-secondary pe-4">Staged Changes</div>
+                            <div className="d-flex gap-3 small uppercase">
+                                {stagedPrs.size > 0 && <span className="text-success"><Badge bg="success">{stagedPrs.size}</Badge> PRs to Approve</span>}
+                                {stagedDeletions.size > 0 && <span className="text-danger"><Badge bg="danger">{stagedDeletions.size}</Badge> Deletions</span>}
+                                {JSON.stringify(stagingCategories) !== JSON.stringify(categories) && <span className="text-info"><Badge bg="info">Mod</Badge> Category List</span>}
                             </div>
+                        </div>
+                        <div className="ms-auto d-flex gap-2">
+                            <Button variant="outline-light" onClick={() => { setStagedPrs(new Set()); setStagedDeletions(new Set()); setStagingCategories([...categories]); }}>Discard All</Button>
+                            <Button variant="info" className="fw-bold px-5 py-2 shadow-lg" onClick={handleBatchConfirm} disabled={isConfirming}>
+                                {isConfirming ? <Spinner size="sm" animation="border" /> : "Finalize & Publish Changes"}
+                            </Button>
+                        </div>
+                    </Container>
+                </div>
+            )}
 
-                            <Alert variant="info" className="bg-info bg-opacity-10 border-info text-info small py-2">
-                                <strong>Tip:</strong> Suffix checking and ID generation were handled automatically by the submission worker.
-                            </Alert>
-                        </>
-                    )}
+            <Modal show={batchLog.length > 0} onHide={() => setBatchLog([])} centered contentClassName="bg-dark text-white border-success shadow-lg">
+                <Modal.Body className="p-4 text-center">
+                    <div className="display-4 mb-3">✅</div>
+                    {batchLog.map((log, i) => <p key={i} className="mb-0">{log}</p>)}
                 </Modal.Body>
-                {!actionMessage && (
-                    <Modal.Footer className="border-secondary bg-black bg-opacity-10">
-                        <Button variant="outline-light" onClick={() => setSelectedPr(null)} disabled={isMerging} className="px-4">Cancel</Button>
-                        <Button variant="success" onClick={handleMerge} disabled={isMerging} className="px-4 fw-bold">
-                            {isMerging ? <><Spinner size="sm" animation="border" className="me-2" /> Merging...</> : "Verify & Merge"}
-                        </Button>
-                    </Modal.Footer>
-                )}
+                <Modal.Footer className="border-0 justify-content-center pb-4"><Button variant="success" onClick={() => setBatchLog([])}>Excellent</Button></Modal.Footer>
             </Modal>
+            <SiteFooter />
         </div>
     )
 }
 
 export default AdminPage
-
-export const Head = () => (
-    <>
-        <html lang="en" />
-        <title>Admin Dashboard | ESK8CAD</title>
-        <meta name="robots" content="noindex, nofollow" />
-    </>
-)

@@ -19,7 +19,6 @@ interface PartSubmission {
     dropboxUrl?: string;
     dropboxZipLastUpdated?: string;
     externalUrl?: string;
-    // Legacy support optional
     isOem?: boolean;
 }
 
@@ -74,23 +73,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             return new Response(JSON.stringify({ error: "No parts provided." }), { status: 400, headers: { "Content-Type": "application/json" } });
         }
 
-        // 3. Process each part (Though usually bulk submit is 1 part? The old code handled array)
-        // We will process the FIRST part for now to ensure sequential ID stability, or handle bulk?
-        // Sequential ID with bulk is tricky if we don't lock.
-        // For now, let's assume 1 part per request or process sequentially.
-        // The prompt implies "part-####.json", singular?
-        // "Submission: ... open GitHub PR on server-side."
-        // I'll handle the first part in the array to be safe and simple, or all if I can.
-        // Logic says "Parse src/data/parts for the highest ... and increment".
-        // If I do bulk, I reserve IDs: NextID, NextID+1...
-
         const owner = env.UPSTREAM_OWNER || 'Focerqc';
         const repo = env.UPSTREAM_REPO || 'CLONEpubparts.xyz';
         const baseBranch = env.BASE_BRANCH || 'master';
 
         const octokit = new Octokit({ auth: env.GITHUB_TOKEN });
 
-        // 4. Get Existing Parts
+        // 3. Get Existing Parts for ID calculation
         let files: string[] = [];
         try {
             const { data } = await octokit.rest.repos.getContent({
@@ -113,13 +102,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             }
         }
 
-        // 4.5 Scan titles for duplicate detection
+        // 4. Scan titles for duplicate detection (Smart Suffixing)
         const existingTitles: string[] = [];
         const normalize = (s: string) => s.toLowerCase().replace(/[\s-]/g, '');
 
         if (files.length > 0) {
-            // Limit scanning to first 40 files to avoid Cloudflare subrequest limits (limit is usually 50)
-            const scanFiles = files.slice(0, 40);
+            const scanFiles = files.slice(0, 40); // GitHub API subrequest limit considerations
             const titlePromises = scanFiles.map(async (fileName) => {
                 try {
                     const { data } = await octokit.rest.repos.getContent({
@@ -142,15 +130,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             existingTitles.push(...fetchedTitles.filter((t): t is string => t !== null));
         }
 
-        // 5. Calculate Next ID
-        let nextIdString = getNextId(files); // e.g. "0001"
-        // If multiple parts, we need to increment for each.
+        // 5. Calculate IDs and Setup Branch
+        let nextIdString = getNextId(files);
         let currentIdInt = parseInt(nextIdString, 10);
+        const newBranchName = `submission-${nextIdString}`;
 
-        const newBranchName = `submission-${nextIdString}`; // Use first ID for branch
-
-        // Create Branch
-        // Get SHA of base branch
         const { data: refData } = await octokit.rest.git.getRef({
             owner,
             repo,
@@ -166,16 +150,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         });
 
         const prBodyLines = [];
-        const filesToCreate = [];
+        const treeItems = [];
 
         for (const part of parts) {
-            // Validate Tags
+            // Validation
             const validation = validateCategories(part.typeOfPart);
             if (!validation.valid) {
-                return new Response(JSON.stringify({ error: `Validation Error: ${validation.error}` }), { status: 400, headers: { "Content-Type": "application/json" } });
+                return new Response(JSON.stringify({ error: `Validation Error: ${validation.error}` }), { status: 400 });
             }
 
-            // DUPLICATE DETECTION / SMART SUFFIXING
+            // Smart Suffixing
             const originalTitle = part.title;
             let candidateTitle = originalTitle;
             let currentSuffix = 2;
@@ -190,54 +174,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                 currentSuffix++;
             }
 
-            // Update part title with unique version
             part.title = candidateTitle;
-            existingTitles.push(candidateTitle); // Track it for next parts in same submission
+            existingTitles.push(candidateTitle);
 
             // Create Content
             const idString = currentIdInt.toString().padStart(4, '0');
             const fileName = `part-${idString}.json`;
             const filePath = `src/data/parts/${fileName}`;
-
             const fileContent = JSON.stringify(part, null, 2);
-            // Safe Base64 encoding for Unicode
             const base64Content = btoa(unescape(encodeURIComponent(fileContent)));
 
-            filesToCreate.push({
-                path: filePath,
+            const { data: blob } = await octokit.rest.git.createBlob({
+                owner,
+                repo,
                 content: base64Content,
-                mode: '100644',
-                type: 'blob'
+                encoding: 'base64'
+            });
+
+            treeItems.push({
+                path: filePath,
+                mode: '100644' as const,
+                type: 'blob' as const,
+                sha: blob.sha
             });
 
             prBodyLines.push(`- **${part.title}** (${fileName})`);
             currentIdInt++;
         }
 
-        // 6. Commit Files (Bulk logic? Octokit createCommit needs tree)
-        // We can create a Tree then a Commit.
-        // Or just create file per file (slower).
-        // Let's use create or update file loop for simplicity, or create specific commit.
-        // For "clean" logic, creating a tree is better.
-
-        // Create Blobs
-        const treeItems = [];
-        for (const f of filesToCreate) {
-            const { data: blob } = await octokit.rest.git.createBlob({
-                owner,
-                repo,
-                content: f.content,
-                encoding: 'base64'
-            });
-            treeItems.push({
-                path: f.path,
-                mode: '100644' as const,
-                type: 'blob' as const,
-                sha: blob.sha
-            });
-        }
-
-        // Create Tree
+        // 6. Finalize Commit and PR
         const { data: tree } = await octokit.rest.git.createTree({
             owner,
             repo,
@@ -245,16 +210,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             tree: treeItems
         });
 
-        // Create Commit
         const { data: commit } = await octokit.rest.git.createCommit({
             owner,
             repo,
-            message: `feat: add ${parts.length} new parts`,
+            message: `feat: add ${parts.length} new parts via submission`,
             tree: tree.sha,
             parents: [baseSha]
         });
 
-        // Update Reference
         await octokit.rest.git.updateRef({
             owner,
             repo,
@@ -262,17 +225,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             sha: commit.sha
         });
 
-        // 7. Create PR
         const { data: pr } = await octokit.rest.pulls.create({
             owner,
             repo,
             title: `Submission: ${parts.length} New Parts`,
             head: newBranchName,
             base: baseBranch,
-            body: `Automated submission via ESK8CAD.\n\n${prBodyLines.join('\n')}`
+            body: `Automated submission via ESK8CAD Dashboard.\n\n${prBodyLines.join('\n')}`
         });
 
-        // Success
+        // 7. Success
         await env.SUBMIT_RATE_LIMIT.put(clientIP, now.toString());
 
         return new Response(JSON.stringify({
@@ -282,6 +244,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     } catch (error: any) {
         console.error(error);
-        return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), { status: 500 });
     }
 };

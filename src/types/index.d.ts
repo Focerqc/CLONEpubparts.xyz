@@ -32,6 +32,9 @@ interface ItemData {
      */
     dropboxZipLastUpdated: string,
     isOem?: boolean
+    parent?: {
+        relativePath: string
+    }
 }
 
 type PartType =

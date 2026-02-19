@@ -53,17 +53,28 @@ export default (item: ItemData, index: number) => {
                 }
 
                 {/* Part type badges */}
-                {item.typeOfPart?.length &&
-                    <Stack className="display-over-top-right" direction="vertical" gap={1}>
-                        {item.typeOfPart.map((p, pillIndex) => (
+                <Stack className="display-over-top-right" direction="vertical" gap={1}>
+                    {(item.parent?.relativePath || (item as any)._filename) && (
+                        (() => {
+                            const path = item.parent?.relativePath || (item as any)._filename;
+                            const match = path.match(/part-(\d{4})\.json/);
+                            return match ? (
+                                <Badge pill bg="primary" style={{ border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.75rem' }}>
+                                    ID: {match[1]}
+                                </Badge>
+                            ) : null;
+                        })()
+                    )}
+                    {item.typeOfPart?.length &&
+                        item.typeOfPart.map((p, pillIndex) => (
                             <Badge key={`item-card-${index}-pill-t-${pillIndex}`} pill bg={p.toUpperCase().includes("OEM") ? "success" : "dark"}>{toTitleCase(p)}</Badge>
-                        ))}
+                        ))
+                    }
 
-                        {item.fabricationMethod.map((f, pillIndex) => (
-                            <Badge key={`item-card-${index}-pill-f-${pillIndex}`} pill bg="dark">{f}</Badge>
-                        ))}
-                    </Stack>
-                }
+                    {item.fabricationMethod?.map((f, pillIndex) => (
+                        <Badge key={`item-card-${index}-pill-f-${pillIndex}`} pill bg="dark">{f}</Badge>
+                    ))}
+                </Stack>
 
                 {/* Copy Link to this item button */}
                 <Stack className="display-over-top-left" direction="vertical" gap={1}>

@@ -1,4 +1,4 @@
-import { type HeadFC, type PageProps } from "gatsby"
+import { type PageProps } from "gatsby"
 import React from "react"
 import { Container, Row } from "react-bootstrap"
 import ResourceCard from "../../components/ResourceCard"
@@ -9,19 +9,13 @@ import SiteNavbar from "../../components/SiteNavbar"
 import "../../scss/pages/resources.scss"
 import { applicationsResources } from "../../util/resources"
 
-export const Head: HeadFC = () => (
-    <>
-        <html lang="en" />
-        <SiteMetaData
-            title="Applications | Resources | ESK8CAD.COM"
-            description="Various resources for VESC builders" />
-    </>
-)
-
 const Page: React.FC<PageProps> = () => {
     return (
         <>
-            <header>
+            
+            <SiteMetaData
+            title="Applications | Resources | ESK8CAD.COM"
+            description="Various resources for VESC builders" /><header>
                 <SiteNavbar />
 
                 <h1 className="flex-center">

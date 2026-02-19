@@ -2,13 +2,14 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const GlobalStyles = () => (
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
 );
-import { type HeadFC, type PageProps } from "gatsby"
-import React, { useState, useCallback, Component, ErrorInfo, ReactNode } from "react"
+import { type PageProps } from "gatsby"
+import React, { useState, useCallback, Component, ErrorInfo, ReactNode, useRef } from "react"
 import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge, Modal } from "react-bootstrap"
 import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
 import ClientOnly from "../components/ClientOnly"
+import Turnstile from "react-turnstile"
 
 // --- Error Boundary ---
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -120,7 +121,7 @@ const PartForm: React.FC<{
             const errorObj = err as Error;
             const msg = errorObj.name === 'AbortError'
                 ? "Request timed out after 8 seconds. Please fill details manually."
-                : (errorObj.message || "Scrape Failed: Could not fetch metadata.");
+                : "Could not auto-fill details. Please enter manually.";
             setModalMessage(msg)
             setShowErrorModal(true)
         } finally {
@@ -128,8 +129,33 @@ const PartForm: React.FC<{
         }
     }
 
-    const setSingleValue = (field: 'platform' | 'fabricationMethod' | 'typeOfPart', val: string) => {
-        onUpdate(part.id, { [field]: [val] });
+    const toggleTag = (tag: string) => {
+        const currentTags = part.typeOfPart;
+        if (currentTags.includes(tag)) {
+            // Toggle off
+            onUpdate(part.id, { typeOfPart: [] });
+        } else {
+            // Replace (Limit 1)
+            onUpdate(part.id, { typeOfPart: [tag] });
+        }
+    }
+
+    const setPlatform = (plat: string) => {
+        const current = part.platform;
+        if (current.includes(plat)) {
+            onUpdate(part.id, { platform: [] });
+        } else {
+            onUpdate(part.id, { platform: [plat] });
+        }
+    }
+
+    const setFab = (method: string) => {
+        const current = part.fabricationMethod;
+        if (current.includes(method)) {
+            onUpdate(part.id, { fabricationMethod: [] });
+        } else {
+            onUpdate(part.id, { fabricationMethod: [method] });
+        }
     }
 
     return (
@@ -209,7 +235,7 @@ const PartForm: React.FC<{
                                     key={opt}
                                     bg={(activeTab === 'platform' ? part.platform : part.typeOfPart).includes(opt) ? "primary" : "none"}
                                     className="p-2 border border-light cursor-pointer shadow-sm"
-                                    onClick={() => setSingleValue(activeTab === 'platform' ? 'platform' : 'typeOfPart', opt)}
+                                    onClick={() => activeTab === 'platform' ? setPlatform(opt) : toggleTag(opt)}
                                 >
                                     {opt}
                                 </Badge>
@@ -223,7 +249,7 @@ const PartForm: React.FC<{
                         <Form.Label className="small uppercase fw-bold opacity-75 text-light">Fab Method *</Form.Label>
                         <div className="d-flex flex-wrap gap-2 p-3 bg-secondary rounded border border-secondary shadow-inner">
                             {FAB_METHODS.map(m => (
-                                <Button key={m} size="sm" variant={part.fabricationMethod.includes(m) ? "primary" : "outline-light"} onClick={() => setSingleValue('fabricationMethod', m)}>{m}</Button>
+                                <Button key={m} size="sm" variant={part.fabricationMethod.includes(m) ? "primary" : "outline-light"} onClick={() => setFab(m)}>{m}</Button>
                             ))}
                         </div>
                     </Col>
@@ -268,6 +294,8 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [hpField, setHpField] = useState("")
     const [manualUrl, setManualUrl] = useState<string | null>(null)
     const [warning, setWarning] = useState<string | null>(null)
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+    const turnstileRef = useRef<any>(null)
 
     const updatePart = useCallback((id: string, data: Partial<PartData>) => {
         setForms(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
@@ -382,7 +410,14 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         </Button>
                                     )}
                                     <div className="mt-3">
-                                        <Button variant="outline-dark" size="sm" onClick={() => { setIsSubmitted(false); setForms([createEmptyPart()]); setManualUrl(null); setWarning(null); }}>Start New Batch</Button>
+                                        <Button variant="outline-dark" size="sm" onClick={() => {
+                                            setIsSubmitted(false);
+                                            setForms([createEmptyPart()]);
+                                            setManualUrl(null);
+                                            setWarning(null);
+                                            setTurnstileToken(null);
+                                            setTimeout(() => turnstileRef.current?.reset(), 100);
+                                        }}>Start New Batch</Button>
                                     </div>
                                 </Alert>
                             ) : (
@@ -429,12 +464,23 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 tabIndex={-1}
                                                 autoComplete="off"
                                             />
+                                            {/* Turnstile Widget */}
+                                            <div className="d-flex justify-content-center my-3" style={{ minHeight: '65px' }}>
+                                                <Turnstile
+                                                    sitekey="0x4AAAAAAA8uXA-Hk8qQ6rC5"
+                                                    onVerify={(token) => setTurnstileToken(token)}
+                                                    onError={() => setTurnstileToken(null)}
+                                                    onExpire={() => setTurnstileToken(null)}
+                                                    // @ts-ignore: Library types might be outdated, but ref is needed for reset.
+                                                    ref={turnstileRef}
+                                                />
+                                            </div>
                                             <Button
                                                 variant="primary"
                                                 size="lg"
                                                 className="px-5 py-3 fw-bold shadow-lg"
                                                 onClick={handleFinalSubmit}
-                                                disabled={isSubmitting}
+                                                disabled={isSubmitting || !turnstileToken}
                                             >
                                                 {isSubmitting ? <><Spinner animation="border" size="sm" className="me-2" /> Creating Pull Request...</> : `Submit All ${forms.length} Parts`}
                                             </Button>

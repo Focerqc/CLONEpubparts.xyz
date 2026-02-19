@@ -30,7 +30,8 @@ interface ItemData {
     /**
      * Item ZIP direct download last updated
      */
-    dropboxZipLastUpdated?: string
+    dropboxZipLastUpdated: string,
+    isOem?: boolean
 }
 
 type PartType =

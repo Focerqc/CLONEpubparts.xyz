@@ -1,4 +1,4 @@
-import { type HeadFC, type PageProps } from "gatsby"
+import { type PageProps } from "gatsby"
 import React from "react"
 import { Container, Row } from "react-bootstrap"
 import CopyrightCard from "../../components/CopyrightCard"
@@ -10,19 +10,13 @@ import SiteNavbar from "../../components/SiteNavbar"
 import "../../scss/pages/items.scss"
 import { offRoadParts } from "../../util/parts"
 
-export const Head: HeadFC = () => (
-    <>
-        <html lang="en" />
-        <SiteMetaData
-            title="Off-Road DIY Parts | ESK8CAD.COM"
-            description="Open source or otherwise aftermarket parts for generic Off-Road DIY platforms" />
-    </>
-)
-
 const Page: React.FC<PageProps> = () => {
     return (
         <>
-            <header>
+            
+            <SiteMetaData
+            title="Off-Road DIY Parts | ESK8CAD.COM"
+            description="Open source or otherwise aftermarket parts for generic Off-Road DIY platforms" /><header>
                 <SiteNavbar />
 
                 <h1 className="flex-center">

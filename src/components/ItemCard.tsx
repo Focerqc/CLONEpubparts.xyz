@@ -56,7 +56,7 @@ export default (item: ItemData, index: number) => {
                 {item.typeOfPart?.length &&
                     <Stack className="display-over-top-right" direction="vertical" gap={1}>
                         {item.typeOfPart.map((p, pillIndex) => (
-                            <Badge key={`item-card-${index}-pill-t-${pillIndex}`} pill bg="dark">{toTitleCase(p)}</Badge>
+                            <Badge key={`item-card-${index}-pill-t-${pillIndex}`} pill bg={p.toUpperCase().includes("OEM") ? "success" : "dark"}>{toTitleCase(p)}</Badge>
                         ))}
 
                         {item.fabricationMethod.map((f, pillIndex) => (

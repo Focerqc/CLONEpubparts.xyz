@@ -1,4 +1,4 @@
-import { type HeadFC, type PageProps } from "gatsby"
+import { type PageProps } from "gatsby"
 import React from "react"
 import { Container } from "react-bootstrap"
 import PartTypesLinks from "../../components/PartTypesLinks"
@@ -6,17 +6,11 @@ import SiteFooter from "../../components/SiteFooter"
 import SiteMetaData from "../../components/SiteMetaData"
 import SiteNavbar from "../../components/SiteNavbar"
 
-export const Head: HeadFC = () => (
-    <>
-        <html lang="en" />
-        <SiteMetaData title="Parts | ESK8CAD.COM" />
-    </>
-)
-
 const Page: React.FC<PageProps> = () => {
     return (
         <>
-            <header>
+            
+            <SiteMetaData title="Parts | ESK8CAD.COM" /><header>
                 <SiteNavbar isHomepage={true} />
 
                 <h1 className="flex-center">

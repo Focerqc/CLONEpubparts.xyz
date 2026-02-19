@@ -3,13 +3,28 @@ const GlobalStyles = () => (
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
 );
 import { type PageProps } from "gatsby"
-import React, { useState, useCallback, Component, ErrorInfo, ReactNode, useRef } from "react"
+import React, { useState, useCallback, Component, ErrorInfo, ReactNode, useRef, useEffect } from "react"
 import { Container, Button, Form, Alert, Spinner, Image, Card, Row, Col, Badge, Modal } from "react-bootstrap"
 import SiteFooter from "../components/SiteFooter"
 import SiteMetaData from "../components/SiteMetaData"
 import SiteNavbar from "../components/SiteNavbar"
 import ClientOnly from "../components/ClientOnly"
-import Turnstile from "react-turnstile"
+
+declare global {
+    interface Window {
+        turnstile: any;
+    }
+}
+
+class TurnstileErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+    state = { hasError: false };
+    static getDerivedStateFromError() { return { hasError: true }; }
+    render() {
+        return this.state.hasError
+            ? <div style={{ color: '#f87171', padding: '1rem', textAlign: 'center' }}>Captcha failed to load – try refreshing.</div>
+            : this.props.children;
+    }
+}
 
 // --- Error Boundary ---
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -316,9 +331,57 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [hpField, setHpField] = useState("")
     const [manualUrl, setManualUrl] = useState<string | null>(null)
     const [warning, setWarning] = useState<string | null>(null)
-    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-    const [turnstileError, setTurnstileError] = useState<string | null>(null)
-    const turnstileRef = useRef<any>(null)
+    const [token, setToken] = useState<string | null>(null)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
+    const turnstileRef = useRef<HTMLDivElement>(null)
+    const resetIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    useEffect(() => {
+        if (!document.querySelector('script[src*="turnstile/v0/api.js"]')) {
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        const tryRender = () => {
+            if (turnstileRef.current && window.turnstile) {
+                try {
+                    window.turnstile.render(turnstileRef.current, {
+                        sitekey: '0x4AAAAAAACfVLng3JteKSMhW',
+                        size: 'normal',
+                        theme: 'dark',
+                        callback: (newToken: string) => {
+                            setToken(newToken);
+                            setErrorMsg(null);
+                            if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
+                        },
+                        'error-callback': (code: string) => {
+                            setErrorMsg(`Turnstile init failed (${code}). Retrying...`);
+                            if (!resetIntervalRef.current) {
+                                resetIntervalRef.current = setInterval(() => {
+                                    if (window.turnstile) window.turnstile.reset();
+                                }, 2000);
+                            }
+                        },
+                        'expired-callback': () => {
+                            setToken(null);
+                            if (window.turnstile) window.turnstile.reset();
+                        }
+                    });
+                } catch (err) {
+                    console.error('Turnstile render error:', err);
+                }
+            }
+        };
+
+        const timer = setTimeout(tryRender, 500);
+        return () => {
+            clearTimeout(timer);
+            if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
+        };
+    }, []);
 
     const updatePart = useCallback((id: string, data: Partial<PartData>) => {
         setForms(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))
@@ -335,6 +398,11 @@ const SubmitPage: React.FC<PageProps> = () => {
     }
 
     const handleFinalSubmit = async () => {
+        if (!token) {
+            setErrorMsg("Please complete the bot verification before submitting.");
+            return;
+        }
+
         // Validation check
         for (const part of forms) {
             if (!part.url || !part.title || part.platform.length === 0 || part.typeOfPart.length === 0) {
@@ -438,8 +506,10 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             setForms([createEmptyPart()]);
                                             setManualUrl(null);
                                             setWarning(null);
-                                            setTurnstileToken(null);
-                                            setTimeout(() => turnstileRef.current?.reset(), 100);
+                                            setToken(null);
+                                            setTimeout(() => {
+                                                if (window.turnstile) window.turnstile.reset();
+                                            }, 100);
                                         }}>Start New Batch</Button>
                                     </div>
                                 </Alert>
@@ -454,7 +524,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                         </div>
 
                         {!isSubmitted && (
-                            <>
+                            <TurnstileErrorBoundary>
                                 {forms.map((part, idx) => (
                                     <PartForm
                                         key={part.id}
@@ -489,36 +559,20 @@ const SubmitPage: React.FC<PageProps> = () => {
                                             />
                                             {/* Turnstile Widget */}
                                             <div className="d-flex flex-column align-items-center my-3" style={{ minHeight: '65px' }}>
-                                                {turnstileError && (
-                                                    <Alert variant="danger" className="py-2 px-3 mb-2 small w-100 text-center shadow-sm">
-                                                        <strong className="me-2">Verification Error:</strong> {turnstileError}
+                                                {errorMsg && (
+                                                    <Alert variant="danger" className="py-2 px-3 mb-2 small w-100 text-center shadow-sm border-0 bg-danger text-white">
+                                                        <strong className="me-2">Verification Error:</strong> {errorMsg}
                                                     </Alert>
                                                 )}
-                                                <Turnstile
-                                                    sitekey="0x4AAAAAAA8uXA-Hk8qQ6rC5"
-                                                    onVerify={(token) => {
-                                                        setTurnstileToken(token);
-                                                        setTurnstileError(null);
-                                                    }}
-                                                    onError={() => {
-                                                        setTurnstileToken(null);
-                                                        setTurnstileError("Cloudflare Turnstile verification failed. Please check your connection or try a different browser.");
-                                                    }}
-                                                    onExpire={() => {
-                                                        setTurnstileToken(null);
-                                                        setTurnstileError("Verification expired. Please check the box again.");
-                                                    }}
-                                                    // @ts-ignore: Library types might be outdated, but ref is needed for reset.
-                                                    ref={turnstileRef}
-                                                />
+                                                <div ref={turnstileRef}></div>
                                             </div>
                                             <Button
                                                 variant="primary"
                                                 size="lg"
                                                 className="px-5 py-3 fw-bold shadow-lg"
                                                 onClick={() => {
-                                                    if (!turnstileToken) {
-                                                        setTurnstileError("Please complete the bot verification before submitting.");
+                                                    if (!token) {
+                                                        setErrorMsg("Please complete the bot verification before submitting.");
                                                         return;
                                                     }
                                                     handleFinalSubmit();
@@ -530,7 +584,7 @@ const SubmitPage: React.FC<PageProps> = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </>
+                            </TurnstileErrorBoundary>
                         )}
                     </ClientOnly>
                 </Container>

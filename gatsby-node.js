@@ -1,6 +1,4 @@
-import type { CreatePagesArgs } from "gatsby"
-
-exports.createPages = ({ actions }: CreatePagesArgs) => {
+exports.createPages = ({ actions }) => {
     const { createRedirect } = actions
 
     const redirects = [

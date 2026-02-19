@@ -61,6 +61,10 @@ public
 # build files
 gatsby-types.d.ts
 *.js
+!gatsby-config.js
+!gatsby-node.js
+!gatsby-browser.js
+!gatsby-ssr.js
 !.env.example
 
 # Mac files

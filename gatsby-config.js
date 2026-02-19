@@ -1,10 +1,6 @@
 require("dotenv").config();
-import type { GatsbyConfig } from "gatsby"
-import dotenv from "dotenv"
 
-dotenv.config()
-
-const config: GatsbyConfig = {
+module.exports = {
     siteMetadata: {
         title: "ESK8CAD",
         description: "A collection of open source ESK8 CAD files.",
@@ -15,10 +11,6 @@ const config: GatsbyConfig = {
         prefix: "/api",
         url: "http://127.0.0.1:8788",
     },
-    // More easily incorporate content into your pages through automatic TypeScript type generation and better GraphQL IntelliSense.
-    // If you use VSCode you can also use the GraphQL plugin
-    // Learn more at: https://gatsby.dev/graphql-typegen
-    // graphqlTypegen: true,
     plugins: [
         "gatsby-plugin-image",
         "gatsby-plugin-sass",
@@ -35,5 +27,3 @@ const config: GatsbyConfig = {
         },
     ]
 }
-
-export default config

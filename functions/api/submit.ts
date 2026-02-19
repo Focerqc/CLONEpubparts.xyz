@@ -4,6 +4,7 @@ import { getNextId, validateCategories } from "./_utils";
 interface Env {
     GITHUB_TOKEN: string;
     SUBMIT_RATE_LIMIT: KVNamespace;
+    TURNSTILE_SECRET_KEY?: string;
     UPSTREAM_OWNER?: string;
     UPSTREAM_REPO?: string;
     BASE_BRANCH?: string;
@@ -38,8 +39,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
 
         // 2. Parse Body
-        const body = await request.json() as { parts: PartSubmission[], hp_field?: string };
-        const { parts, hp_field } = body;
+        const body = await request.json() as { parts: PartSubmission[], hp_field?: string, turnstile_token?: string };
+        const { parts, hp_field, turnstile_token } = body;
+
+        // 2.5 Turnstile Verification (Pre-PR logic)
+        const DEBUG_BYPASS = true;
+
+        if (!DEBUG_BYPASS) {
+            if (!turnstile_token) {
+                return new Response(JSON.stringify({ error: "Missing verification token." }), { status: 400 });
+            }
+
+            const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `secret=${encodeURIComponent(env.TURNSTILE_SECRET_KEY || '')}&response=${encodeURIComponent(turnstile_token)}&remoteip=${encodeURIComponent(clientIP)}`
+            });
+
+            const verifyData = (await verifyRes.json()) as { success: boolean, 'error-codes'?: string[] };
+            if (!verifyData.success) {
+                return new Response(JSON.stringify({
+                    error: "Bot verification failed.",
+                    details: verifyData['error-codes']
+                }), { status: 403 });
+            }
+        }
 
         // Honeypot check
         if (hp_field) {

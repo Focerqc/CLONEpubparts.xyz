@@ -5,6 +5,10 @@ import SiteNavbar from "../components/SiteNavbar"
 import SiteFooter from "../components/SiteFooter"
 import ClientOnly from "../components/ClientOnly"
 
+const GlobalStyles = () => (
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+);
+
 // Types
 interface PR {
     number: number;
@@ -121,6 +125,7 @@ const AdminPage: React.FC<PageProps> = () => {
     if (!isAuthenticated) {
         return (
             <div className="bg-black text-light min-vh-100 d-flex flex-column">
+                <GlobalStyles />
                 <SiteNavbar />
                 <Container className="flex-grow-1 d-flex align-items-center justify-content-center">
                     <Card className="bg-dark text-white border-secondary shadow-lg p-4" style={{ maxWidth: '400px', width: '100%' }}>
@@ -137,8 +142,8 @@ const AdminPage: React.FC<PageProps> = () => {
                                         placeholder="Enter admin password"
                                     />
                                 </Form.Group>
-                                {authError && <Alert variant="danger" className="py-2 small">Invalid Password</Alert>}
-                                <Button variant="primary" type="submit" className="w-100 fw-bold" disabled={isLoading}>
+                                {authError && <Alert variant="danger" className="py-2 small border-0 bg-danger text-white">Invalid Password</Alert>}
+                                <Button variant="primary" type="submit" className="w-100 fw-bold shadow" disabled={isLoading}>
                                     {isLoading ? <Spinner size="sm" animation="border" /> : "Unlock Dashboard"}
                                 </Button>
                             </Form>
@@ -152,6 +157,7 @@ const AdminPage: React.FC<PageProps> = () => {
 
     return (
         <div className="bg-black text-light min-vh-100 d-flex flex-column">
+            <GlobalStyles />
             {/* Styles Injection for consistency */}
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -174,11 +180,21 @@ const AdminPage: React.FC<PageProps> = () => {
                 {error && <Alert variant="danger">{error}</Alert>}
 
                 {prs.length === 0 && !isLoading ? (
-                    <div className="text-center py-5 opacity-50">
-                        <h4>No pending Pull Requests.</h4>
-                        <p>Good job! The queue is clear.</p>
-                        <Button variant="outline-primary" onClick={() => handleLogin()}>Refresh</Button>
-                    </div>
+                    <Card className="bg-dark text-white border-secondary shadow-lg p-5 text-center">
+                        <Card.Body>
+                            <div className="display-1 opacity-10 mb-4">📂</div>
+                            <h3 className="fw-bold">No Pending Submissions</h3>
+                            <p className="text-muted mb-4">The review queue is currently empty. All parts are up to date.</p>
+                            <div className="d-flex justify-content-center gap-3">
+                                <Button variant="primary" className="fw-bold px-4" onClick={() => handleLogin()}>
+                                    Refresh Queue
+                                </Button>
+                                <Button variant="outline-light" className="px-4" href="https://github.com/Focerqc/CLONEpubparts.xyz" target="_blank">
+                                    View GitHub Repository
+                                </Button>
+                            </div>
+                        </Card.Body>
+                    </Card>
                 ) : (
                     <Row xs={1} md={2} lg={3} className="g-4">
                         {prs.map(pr => (

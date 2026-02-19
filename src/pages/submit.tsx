@@ -84,6 +84,15 @@ const PartForm: React.FC<{
     const [activeTab, setActiveTab] = useState<'platform' | 'tag' | null>(null)
     const [showErrorModal, setShowErrorModal] = useState(false)
     const [modalMessage, setModalMessage] = useState("")
+    const [selectionSummary, setSelectionSummary] = useState<string[]>([])
+
+    // Update selection summary reactively
+    React.useEffect(() => {
+        const summary: string[] = [];
+        if (part.platform.length > 0) summary.push(part.platform[0]);
+        if (part.typeOfPart.length > 0) summary.push(part.typeOfPart[0]);
+        setSelectionSummary(summary);
+    }, [part.platform, part.typeOfPart]);
 
     const handleFetchMetadata = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -242,6 +251,19 @@ const PartForm: React.FC<{
                             ))}
                         </div>
                     </div>
+
+                    {/* Selection Summary Box */}
+                    <div className="mt-4 p-3 rounded-pill bg-black border border-secondary d-flex align-items-center justify-content-center gap-2 flex-wrap shadow-inner" style={{ minHeight: '52px' }}>
+                        {selectionSummary.length === 0 && !part.isOem ? (
+                            <span className="small text-muted opacity-50 italic">No tags selected yet...</span>
+                        ) : (
+                            <>
+                                {part.isOem && <Badge bg="none" className="px-3 py-2 border rounded-pill uppercase small" style={{ color: '#a855f7', borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.1)' }}>OEM</Badge>}
+                                {part.platform.map(p => <Badge key={p} bg="primary" className="px-3 py-2 rounded-pill uppercase small">{p}</Badge>)}
+                                {part.typeOfPart.map(t => <Badge key={t} bg="none" className="px-3 py-2 border border-primary text-primary rounded-pill uppercase small" style={{ backgroundColor: 'rgba(13, 110, 253, 0.1)' }}>{t}</Badge>)}
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 <Row className="mb-4">
@@ -295,6 +317,7 @@ const SubmitPage: React.FC<PageProps> = () => {
     const [manualUrl, setManualUrl] = useState<string | null>(null)
     const [warning, setWarning] = useState<string | null>(null)
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+    const [turnstileError, setTurnstileError] = useState<string | null>(null)
     const turnstileRef = useRef<any>(null)
 
     const updatePart = useCallback((id: string, data: Partial<PartData>) => {
@@ -465,12 +488,26 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 autoComplete="off"
                                             />
                                             {/* Turnstile Widget */}
-                                            <div className="d-flex justify-content-center my-3" style={{ minHeight: '65px' }}>
+                                            <div className="d-flex flex-column align-items-center my-3" style={{ minHeight: '65px' }}>
+                                                {turnstileError && (
+                                                    <Alert variant="danger" className="py-2 px-3 mb-2 small w-100 text-center shadow-sm">
+                                                        <strong className="me-2">Verification Error:</strong> {turnstileError}
+                                                    </Alert>
+                                                )}
                                                 <Turnstile
                                                     sitekey="0x4AAAAAAA8uXA-Hk8qQ6rC5"
-                                                    onVerify={(token) => setTurnstileToken(token)}
-                                                    onError={() => setTurnstileToken(null)}
-                                                    onExpire={() => setTurnstileToken(null)}
+                                                    onVerify={(token) => {
+                                                        setTurnstileToken(token);
+                                                        setTurnstileError(null);
+                                                    }}
+                                                    onError={() => {
+                                                        setTurnstileToken(null);
+                                                        setTurnstileError("Cloudflare Turnstile verification failed. Please check your connection or try a different browser.");
+                                                    }}
+                                                    onExpire={() => {
+                                                        setTurnstileToken(null);
+                                                        setTurnstileError("Verification expired. Please check the box again.");
+                                                    }}
                                                     // @ts-ignore: Library types might be outdated, but ref is needed for reset.
                                                     ref={turnstileRef}
                                                 />
@@ -479,8 +516,14 @@ const SubmitPage: React.FC<PageProps> = () => {
                                                 variant="primary"
                                                 size="lg"
                                                 className="px-5 py-3 fw-bold shadow-lg"
-                                                onClick={handleFinalSubmit}
-                                                disabled={isSubmitting || !turnstileToken}
+                                                onClick={() => {
+                                                    if (!turnstileToken) {
+                                                        setTurnstileError("Please complete the bot verification before submitting.");
+                                                        return;
+                                                    }
+                                                    handleFinalSubmit();
+                                                }}
+                                                disabled={isSubmitting}
                                             >
                                                 {isSubmitting ? <><Spinner animation="border" size="sm" className="me-2" /> Creating Pull Request...</> : `Submit All ${forms.length} Parts`}
                                             </Button>

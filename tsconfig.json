@@ -98,8 +98,6 @@
     "include": [
         "./src/**/*",
         "./functions/**/*",
-        "./gatsby-node.ts",
-        "./gatsby-config.ts",
         "./plugins/**/*"
     ]
 }

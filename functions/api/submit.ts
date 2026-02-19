@@ -101,18 +101,45 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             });
 
             if (Array.isArray(data)) {
-                files = data.map(f => f.name);
+                files = data.filter(f => f.name.endsWith('.json')).map(f => f.name);
             }
         } catch (e: any) {
             if (e.status === 404) {
-                // Directory doesn't exist yet, start fresh
                 files = [];
             } else if (e.status === 403 || e.status === 504) {
-                // Fail-safe as requested
                 return new Response(JSON.stringify({ error: "System Busy" }), { status: 503, headers: { "Content-Type": "application/json" } });
             } else {
                 throw e;
             }
+        }
+
+        // 4.5 Scan titles for duplicate detection
+        const existingTitles: string[] = [];
+        const normalize = (s: string) => s.toLowerCase().replace(/[\s-]/g, '');
+
+        if (files.length > 0) {
+            // Limit scanning to first 40 files to avoid Cloudflare subrequest limits (limit is usually 50)
+            const scanFiles = files.slice(0, 40);
+            const titlePromises = scanFiles.map(async (fileName) => {
+                try {
+                    const { data } = await octokit.rest.repos.getContent({
+                        owner,
+                        repo,
+                        path: `src/data/parts/${fileName}`,
+                        ref: baseBranch
+                    });
+                    if (data && 'content' in data && typeof data.content === 'string') {
+                        const decodedNode = atob(data.content.replace(/\n/g, ''));
+                        const json = JSON.parse(decodedNode);
+                        return json.title as string;
+                    }
+                } catch (err) {
+                    console.error(`Error scanning ${fileName}:`, err);
+                }
+                return null;
+            });
+            const fetchedTitles = await Promise.all(titlePromises);
+            existingTitles.push(...fetchedTitles.filter((t): t is string => t !== null));
         }
 
         // 5. Calculate Next ID
@@ -143,12 +170,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         for (const part of parts) {
             // Validate Tags
-            // Handle Legacy isOem -> map to tag if needed, but per constraints "Reject ... if >1 non-OEM"
-            // We assume client sends correct tags.
             const validation = validateCategories(part.typeOfPart);
             if (!validation.valid) {
                 return new Response(JSON.stringify({ error: `Validation Error: ${validation.error}` }), { status: 400, headers: { "Content-Type": "application/json" } });
             }
+
+            // DUPLICATE DETECTION / SMART SUFFIXING
+            const originalTitle = part.title;
+            let candidateTitle = originalTitle;
+            let currentSuffix = 2;
+
+            const isDuplicate = (t: string) => {
+                const norm = normalize(t);
+                return existingTitles.some(et => normalize(et) === norm);
+            };
+
+            while (isDuplicate(candidateTitle)) {
+                candidateTitle = `${originalTitle} (${currentSuffix})`;
+                currentSuffix++;
+            }
+
+            // Update part title with unique version
+            part.title = candidateTitle;
+            existingTitles.push(candidateTitle); // Track it for next parts in same submission
 
             // Create Content
             const idString = currentIdInt.toString().padStart(4, '0');

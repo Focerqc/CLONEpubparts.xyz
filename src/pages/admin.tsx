@@ -1,9 +1,9 @@
 import { type PageProps } from "gatsby"
-import React, { useState, useEffect } from "react"
-import { Container, Card, Form, Button, Row, Col, Badge, Modal, Alert, Spinner } from "react-bootstrap"
+import React, { useState, useEffect, useMemo } from "react"
+import { Container, Card, Form, Button, Row, Col, Badge, Modal, Alert, Spinner, ListGroup, Tab, Tabs } from "react-bootstrap"
 import SiteNavbar from "../components/SiteNavbar"
 import SiteFooter from "../components/SiteFooter"
-import ClientOnly from "../components/ClientOnly"
+import usePartRegistry from "../hooks/usePartRegistry"
 
 const GlobalStyles = () => (
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
@@ -19,7 +19,27 @@ interface PR {
     body: string;
 }
 
+/**
+ * URL Normalizer: Strips URLs for comparison.
+ * Printables: https://www.printables.com/model/123-name -> printables-123
+ */
+const normalizeUrl = (url: string | undefined): string => {
+    if (!url) return "";
+    let cleaned = url.toLowerCase().trim();
+
+    // Printables specific stripping: extract model ID
+    if (cleaned.includes("printables.com/model/")) {
+        const match = cleaned.match(/model\/(\d+)/);
+        if (match) return `printables-${match[1]}`;
+    }
+
+    // Generic normalization
+    return cleaned.replace(/^(https?:\/\/)?(www\.)?/, "").replace(/\/$/, "");
+};
+
 const AdminPage: React.FC<PageProps> = () => {
+    const registryParts = usePartRegistry();
+
     // Auth State
     const [password, setPassword] = useState("")
     const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -34,6 +54,26 @@ const AdminPage: React.FC<PageProps> = () => {
     const [selectedPr, setSelectedPr] = useState<PR | null>(null)
     const [isMerging, setIsMerging] = useState(false)
     const [actionMessage, setActionMessage] = useState<string | null>(null)
+
+    // --- Audit Logic ---
+    const linkAudit = useMemo(() => {
+        const groups: Record<string, any[]> = {};
+        registryParts.forEach(part => {
+            const norm = normalizeUrl(part.externalUrl);
+            if (norm) {
+                if (!groups[norm]) groups[norm] = [];
+                groups[norm].push(part);
+            }
+        });
+        return groups;
+    }, [registryParts]);
+
+    const findDuplicates = (url?: string) => {
+        const norm = normalizeUrl(url);
+        if (!norm) return null;
+        const matching = linkAudit[norm] || [];
+        return matching.length > 1 ? matching : null;
+    }
 
     // --- Authentication ---
     const handleLogin = async (e?: React.FormEvent) => {
@@ -53,7 +93,6 @@ const AdminPage: React.FC<PageProps> = () => {
                 const data = (await res.json()) as PR[];
                 setPrs(data);
                 setIsAuthenticated(true);
-                // Simple session persistence for reload convenience
                 if (typeof window !== 'undefined') sessionStorage.setItem('admin_pass', password);
             } else {
                 throw new Error("Failed to fetch PRs");
@@ -65,27 +104,21 @@ const AdminPage: React.FC<PageProps> = () => {
         }
     };
 
-    // Auto-login if session exists
+    // Auto-login
     useEffect(() => {
         const savedPass = typeof window !== 'undefined' ? sessionStorage.getItem('admin_pass') : null;
         if (savedPass) {
             setPassword(savedPass);
-            // Trigger login logic (need to extract or use effect? Let's just call fetch directly to avoid stale state issues)
             fetch('/api/admin/list-prs', { headers: { 'x-admin-password': savedPass } })
-                .then(res => {
-                    if (res.ok) return res.json();
-                    throw new Error(res.statusText);
-                })
+                .then(res => res.ok ? res.json() : Promise.reject())
                 .then(data => {
                     setPrs(data as PR[]);
                     setIsAuthenticated(true);
                 })
-                .catch(() => { /* Silent fail on auto-login */ });
+                .catch(() => { });
         }
     }, []);
 
-
-    // --- Actions ---
     const handleMerge = async () => {
         if (!selectedPr) return;
         setIsMerging(true);
@@ -101,15 +134,13 @@ const AdminPage: React.FC<PageProps> = () => {
                 body: JSON.stringify({ pull_number: selectedPr.number })
             });
 
-            const result = (await res.json()) as { error?: string; success?: boolean; message?: string };
-
+            const result = (await res.json()) as { error?: string; success?: boolean };
             if (!res.ok) throw new Error(result.error || "Merge failed");
 
-            // Success
             setActionMessage(`Successfully merged PR #${selectedPr.number}!`);
-            setPrs(prev => prev.filter(p => p.number !== selectedPr.number)); // Optimistic UI update
+            setPrs(prev => prev.filter(p => p.number !== selectedPr.number));
             setTimeout(() => {
-                setSelectedPr(null); // Close modal
+                setSelectedPr(null);
                 setActionMessage(null);
             }, 1500);
 
@@ -119,8 +150,6 @@ const AdminPage: React.FC<PageProps> = () => {
             setIsMerging(false);
         }
     };
-
-    // --- Render ---
 
     if (!isAuthenticated) {
         return (
@@ -158,18 +187,23 @@ const AdminPage: React.FC<PageProps> = () => {
     return (
         <div className="bg-black text-light min-vh-100 d-flex flex-column">
             <GlobalStyles />
-            {/* Styles Injection for consistency */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .bg-secondary { background-color: #121417 !important; } 
                 .border-secondary { border-color: #24282d !important; } 
-                .cursor-pointer { cursor: pointer; } 
+                .nav-tabs { border-bottom: 1px solid #24282d; }
+                .nav-link { color: #adb5bd; border: none !important; }
+                .nav-link.active { background: transparent !important; color: #0dcaf0 !important; border-bottom: 2px solid #0dcaf0 !important; }
+                .list-group-item { background-color: #0b0c0d; border-color: #24282d; color: white; }
             ` }} />
 
             <SiteNavbar />
             <Container className="py-5 flex-grow-1">
                 <div className="d-flex justify-content-between align-items-center mb-5">
-                    <h1 className="display-5 fw-bold">Admin Dashboard</h1>
+                    <div>
+                        <h1 className="display-5 fw-bold mb-0">Admin Dashboard</h1>
+                        <p className="text-info small uppercase letter-spacing-1 mt-1 opacity-75">Control Center & Audit Scan</p>
+                    </div>
                     <Button variant="outline-light" size="sm" onClick={() => {
                         setIsAuthenticated(false);
                         sessionStorage.removeItem('admin_pass');
@@ -177,74 +211,120 @@ const AdminPage: React.FC<PageProps> = () => {
                     }}>Logout</Button>
                 </div>
 
-                {error && <Alert variant="danger">{error}</Alert>}
+                <Tabs defaultActiveKey="queue" className="mb-4">
+                    <Tab eventKey="queue" title={`Review Queue (${prs.length})`}>
+                        {error && <Alert variant="danger">{error}</Alert>}
+                        {prs.length === 0 && !isLoading ? (
+                            <Card className="bg-dark text-white border-secondary shadow-lg p-5 text-center mt-3">
+                                <Card.Body>
+                                    <div className="display-1 opacity-10 mb-4">📂</div>
+                                    <h3 className="fw-bold">No Pending Submissions</h3>
+                                    <p className="text-muted mb-4">The review queue is currently empty.</p>
+                                    <Button variant="primary" className="fw-bold px-4" onClick={() => handleLogin()}>Refresh Queue</Button>
+                                </Card.Body>
+                            </Card>
+                        ) : (
+                            <Row xs={1} md={2} lg={3} className="g-4 mt-1">
+                                {prs.map(pr => (
+                                    <Col key={pr.number}>
+                                        <Card className="bg-dark text-white border-secondary h-100 shadow-sm border-top-primary">
+                                            <Card.Header className="d-flex justify-content-between align-items-center border-secondary bg-black bg-opacity-25">
+                                                <Badge bg="primary">PR #{pr.number}</Badge>
+                                                <small className="text-muted">{new Date(pr.created_at).toLocaleDateString()}</small>
+                                            </Card.Header>
+                                            <Card.Body className="d-flex flex-column">
+                                                <Card.Title className="fw-bold text-truncate" title={pr.title}>{pr.title}</Card.Title>
+                                                <Card.Subtitle className="mb-3 text-muted small">by {pr.user.login}</Card.Subtitle>
 
-                {prs.length === 0 && !isLoading ? (
-                    <Card className="bg-dark text-white border-secondary shadow-lg p-5 text-center">
-                        <Card.Body>
-                            <div className="display-1 opacity-10 mb-4">📂</div>
-                            <h3 className="fw-bold">No Pending Submissions</h3>
-                            <p className="text-muted mb-4">The review queue is currently empty. All parts are up to date.</p>
-                            <div className="d-flex justify-content-center gap-3">
-                                <Button variant="primary" className="fw-bold px-4" onClick={() => handleLogin()}>
-                                    Refresh Queue
-                                </Button>
-                                <Button variant="outline-light" className="px-4" href="https://github.com/Focerqc/CLONEpubparts.xyz" target="_blank">
-                                    View GitHub Repository
-                                </Button>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                ) : (
-                    <Row xs={1} md={2} lg={3} className="g-4">
-                        {prs.map(pr => (
-                            <Col key={pr.number}>
-                                <Card className="bg-dark text-white border-secondary h-100 shadow-sm">
-                                    <Card.Header className="d-flex justify-content-between align-items-center border-secondary">
-                                        <Badge bg="primary">PR #{pr.number}</Badge>
-                                        <small className="text-muted">{new Date(pr.created_at).toLocaleDateString()}</small>
-                                    </Card.Header>
-                                    <Card.Body className="d-flex flex-column">
-                                        <Card.Title className="fw-bold text-truncate" title={pr.title}>{pr.title}</Card.Title>
-                                        <Card.Subtitle className="mb-3 text-muted small">by {pr.user.login}</Card.Subtitle>
+                                                <div className="bg-black p-2 rounded border border-secondary mb-3 flex-grow-1" style={{ maxHeight: '120px', overflowY: 'auto', fontSize: '0.8rem' }}>
+                                                    <pre className="m-0 text-white-50" style={{ whiteSpace: 'pre-wrap' }}>{pr.body}</pre>
+                                                </div>
 
-                                        <div className="bg-black p-2 rounded border border-secondary mb-3 flex-grow-1" style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '0.8rem' }}>
-                                            <pre className="m-0 text-white-50" style={{ whiteSpace: 'pre-wrap' }}>{pr.body?.slice(0, 150)}...</pre>
+                                                <div className="d-flex gap-2 mt-auto">
+                                                    <Button variant="outline-light" size="sm" href={pr.html_url} target="_blank" className="flex-grow-1">Source Code</Button>
+                                                    <Button variant="success" size="sm" className="flex-grow-1 fw-bold shadow-sm" onClick={() => setSelectedPr(pr)}>Approve Merge</Button>
+                                                </div>
+                                            </Card.Body>
+                                        </Card>
+                                    </Col>
+                                ))}
+                            </Row>
+                        )}
+                    </Tab>
+                    <Tab eventKey="audit" title=" Registry Audit">
+                        <Card className="bg-dark text-white border-secondary shadow-lg">
+                            <Card.Header className="border-secondary bg-black bg-opacity-25 py-3">
+                                <h5 className="mb-0 fw-bold text-info">Link Conflict Scan</h5>
+                                <small className="text-muted">Analyzing {registryParts.length} parts for duplicate Printables or external listings.</small>
+                            </Card.Header>
+                            <Card.Body className="p-0">
+                                <ListGroup variant="flush">
+                                    {Object.entries(linkAudit)
+                                        .filter(([_, matches]) => matches.length > 1)
+                                        .map(([norm, matches]) => (
+                                            <ListGroup.Item key={norm} className="p-4 border-secondary">
+                                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <Badge bg="warning" text="dark">⚠️ DUPLICATE LINK</Badge>
+                                                        <code className="text-info">{norm}</code>
+                                                    </div>
+                                                    <Badge bg="secondary" pill>{matches.length} Instances</Badge>
+                                                </div>
+                                                <div className="ps-3 border-start border-warning border-2 py-1 mt-3">
+                                                    {matches.map((p, idx) => (
+                                                        <div key={idx} className="small mb-2 d-flex justify-content-between align-items-center">
+                                                            <span>
+                                                                <strong className="text-light">{p.title}</strong>
+                                                                <span className="text-muted mx-2">•</span>
+                                                                <span className="opacity-75">{p.externalUrl}</span>
+                                                            </span>
+                                                            <Badge bg="dark" className="border border-secondary">Live</Badge>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ListGroup.Item>
+                                        ))}
+                                    {Object.entries(linkAudit).filter(([_, m]) => m.length > 1).length === 0 && (
+                                        <div className="p-5 text-center opacity-50">
+                                            <p className="mb-0">✅ No duplicate external links found in the current registry.</p>
                                         </div>
-
-                                        <div className="d-flex gap-2 mt-auto">
-                                            <Button variant="outline-light" size="sm" href={pr.html_url} target="_blank" className="flex-grow-1">View on GitHub</Button>
-                                            <Button variant="success" size="sm" className="flex-grow-1 fw-bold" onClick={() => setSelectedPr(pr)}>Merge</Button>
-                                        </div>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
-                )}
+                                    )}
+                                </ListGroup>
+                            </Card.Body>
+                        </Card>
+                    </Tab>
+                </Tabs>
             </Container>
             <SiteFooter />
 
             {/* Merge Confirmation Modal */}
-            <Modal show={!!selectedPr} onHide={() => !isMerging && setSelectedPr(null)} centered contentClassName="bg-dark text-white border-secondary">
+            <Modal show={!!selectedPr} onHide={() => !isMerging && setSelectedPr(null)} centered contentClassName="bg-dark text-white border-secondary shadow-lg">
                 <Modal.Header closeButton={!isMerging} closeVariant="white" className="border-secondary">
-                    <Modal.Title>Confirm Merge</Modal.Title>
+                    <Modal.Title>Smart Content Review</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className="p-4">
                     {actionMessage ? (
-                        <Alert variant="success" className="m-0">{actionMessage}</Alert>
+                        <Alert variant="success" className="m-0 py-3">{actionMessage}</Alert>
                     ) : (
                         <>
-                            <p>Are you sure you want to merge <strong>{selectedPr?.title}</strong>?</p>
-                            <p className="small text-muted">This will squash and merge the PR into the main branch.</p>
+                            <p className="mb-4">Reviewing PR <strong>#{selectedPr?.number}</strong> from <strong>{selectedPr?.user.login}</strong></p>
+
+                            <div className="bg-black p-3 rounded border border-secondary mb-4">
+                                <h6 className="small uppercase text-info mb-2 opacity-75">Submission Details:</h6>
+                                <pre className="m-0 small text-white-50" style={{ whiteSpace: 'pre-wrap' }}>{selectedPr?.body}</pre>
+                            </div>
+
+                            <Alert variant="info" className="bg-info bg-opacity-10 border-info text-info small py-2">
+                                <strong>Tip:</strong> Suffix checking and ID generation were handled automatically by the submission worker.
+                            </Alert>
                         </>
                     )}
                 </Modal.Body>
                 {!actionMessage && (
-                    <Modal.Footer className="border-secondary">
-                        <Button variant="outline-light" onClick={() => setSelectedPr(null)} disabled={isMerging}>Cancel</Button>
-                        <Button variant="success" onClick={handleMerge} disabled={isMerging}>
-                            {isMerging ? <Spinner size="sm" animation="border" /> : "Confirm Merge"}
+                    <Modal.Footer className="border-secondary bg-black bg-opacity-10">
+                        <Button variant="outline-light" onClick={() => setSelectedPr(null)} disabled={isMerging} className="px-4">Cancel</Button>
+                        <Button variant="success" onClick={handleMerge} disabled={isMerging} className="px-4 fw-bold">
+                            {isMerging ? <><Spinner size="sm" animation="border" className="me-2" /> Merging...</> : "Verify & Merge"}
                         </Button>
                     </Modal.Footer>
                 )}

@@ -35,7 +35,7 @@ const normalizeUrl = (url: string | undefined): string => {
 };
 
 const AdminPage: React.FC<PageProps> = () => {
-    const registryParts = usePartRegistry();
+    const registryParts = usePartRegistry() || [];
 
     // Auth State
     const [password, setPassword] = useState("")

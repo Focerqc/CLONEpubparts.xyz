@@ -6,17 +6,49 @@ import CopyLinkBadge from "./CopyLinkBadge"
 import Lightbox from "./Lightbox"
 
 /**
+ * Internal component for the image and lightbox to handle state correctly 
+ * without violating the Rules of Hooks when ItemCard is mapped.
+ */
+const ItemImage = ({ item }: { item: ItemData }) => {
+    const [lightboxToggler, setLightboxToggler] = useState(false)
+
+    if (!item.imageSrc) return null;
+
+    return (
+        <>
+            <div className="card-img-holder" onClick={() => setLightboxToggler(!lightboxToggler)}>
+                <img
+                    src={
+                        Array.isArray(item.imageSrc)
+                            ? item.imageSrc[0]
+                            : item.imageSrc
+                    }
+                    alt={"Preview image of part, " + item.title}
+                    loading="lazy"
+                />
+            </div>
+
+            {/* Part image lightbox */}
+            <Lightbox
+                src={[item.imageSrc].flat()}
+                toggler={lightboxToggler}
+            />
+        </>
+    )
+}
+
+/**
  * Creates a {@link https://react-bootstrap.netlify.app/docs/components/cards | React-Bootstrap Card}
  * with item information from an {@link ItemData}
- * object array. Intended to be used in
- * conjunction with the Array map function.
+ * object array. 
+ * 
+ * NOTE: This is frequently used as a .map(ItemCard) callback across the site.
+ * Do not add Hooks directly to this function. Use components inside it instead.
  * 
  * @param item - an {@link ItemData} object
  * @param index - a number from a map
  */
 export default (item: ItemData, index: number) => {
-    const [lightboxToggler, setLightboxToggler] = useState(false)
-
     return (
         <Col
             xs={{ span: 10, offset: 1 }}
@@ -25,32 +57,11 @@ export default (item: ItemData, index: number) => {
             className="flex-center flex-top searchableItem"
             key={`item-card-${index}`}
             parttitle={item.title}
-            parttypes={item.typeOfPart.join(",")}
-            partfabricationmethods={item.fabricationMethod.join(",")}>
+            parttypes={item.typeOfPart?.join(",") || ""}
+            partfabricationmethods={item.fabricationMethod?.join(",") || ""}>
             <Card>
-                {/* Part image */}
-                <div className="card-img-holder" onClick={() => setLightboxToggler(!lightboxToggler)}>
-                    {item.imageSrc ? (
-                        <img
-                            src={
-                                Array.isArray(item.imageSrc)
-                                    ? item.imageSrc[0]
-                                    : item.imageSrc
-                            }
-                            alt={"Preview image of part, " + item.title}
-                            loading="lazy"
-                        />
-                    ) : null}
-                </div>
-
-                {/* Part image lightbox */}
-                {/* https://fslightbox.com/react */}
-                {item.imageSrc &&
-                    <Lightbox
-                        src={[item.imageSrc].flat()}
-                        toggler={lightboxToggler}
-                    />
-                }
+                {/* Part image & Lightbox */}
+                <ItemImage item={item} />
 
                 {/* Part type badges */}
                 <Stack className="display-over-top-right" direction="vertical" gap={1}>

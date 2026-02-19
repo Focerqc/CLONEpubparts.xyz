@@ -130,17 +130,25 @@ const AdminPage: React.FC<PageProps> = () => {
     // Auto-login from session
     useEffect(() => {
         const savedPass = typeof window !== 'undefined' ? sessionStorage.getItem('admin_pass') : null;
-        if (savedPass) {
+        if (savedPass && !isAuthenticated && !isLoading) {
             setPassword(savedPass);
-            fetch('/api/admin/list-prs', { headers: { 'x-admin-password': savedPass } })
-                .then(res => res.ok ? res.json() : Promise.reject())
-                .then(data => {
-                    setPrs(data as PR[]);
-                    setIsAuthenticated(true);
-                })
-                .catch(() => { });
+            // We need to bypass the event object for handleLogin
+            const performAutoLogin = async () => {
+                setIsLoading(true);
+                setAuthError(false);
+                try {
+                    const res = await fetch('/api/admin/list-prs', { headers: { 'x-admin-password': savedPass } });
+                    if (res.ok) {
+                        const data = await res.json() as PR[];
+                        setPrs(data);
+                        setIsAuthenticated(true);
+                    }
+                } catch (err) { setError("Auto-login failed."); }
+                finally { setIsLoading(false); }
+            };
+            performAutoLogin();
         }
-    }, []);
+    }, [isAuthenticated]);
 
     // --- Action Handlers ---
     const toggleStagedPr = (num: number) => {

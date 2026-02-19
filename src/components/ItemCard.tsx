@@ -54,17 +54,6 @@ export default (item: ItemData, index: number) => {
 
                 {/* Part type badges */}
                 <Stack className="display-over-top-right" direction="vertical" gap={1}>
-                    {(item.parent?.relativePath || (item as any)._filename) && (
-                        (() => {
-                            const path = item.parent?.relativePath || (item as any)._filename;
-                            const match = path.match(/part-(\d{4})\.json/);
-                            return match ? (
-                                <Badge pill bg="primary" style={{ border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.75rem' }}>
-                                    ID: {match[1]}
-                                </Badge>
-                            ) : null;
-                        })()
-                    )}
                     {item.typeOfPart?.length &&
                         item.typeOfPart.map((p, pillIndex) => (
                             <Badge key={`item-card-${index}-pill-t-${pillIndex}`} pill bg={p.toUpperCase().includes("OEM") ? "success" : "dark"}>{toTitleCase(p)}</Badge>
@@ -83,7 +72,20 @@ export default (item: ItemData, index: number) => {
 
                 {/* Part information */}
                 <Card.Body>
-                    <Card.Title as="h3">{item.title}</Card.Title>
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                        <Card.Title as="h3" className="mb-0">{item.title}</Card.Title>
+                        {(item.parent?.relativePath || (item as any)._filename) && (
+                            (() => {
+                                const path = item.parent?.relativePath || (item as any)._filename;
+                                const match = path.match(/part-(\d{4})\.json/);
+                                return match ? (
+                                    <Badge bg="primary" className="ms-2" style={{ fontSize: '0.7rem', padding: '0.3em 0.6em' }}>
+                                        #{match[1]}
+                                    </Badge>
+                                ) : null;
+                            })()
+                        )}
+                    </div>
 
                     {(item.externalUrl || item.dropboxUrl) &&
                         <Stack direction="vertical" gap={1}>
